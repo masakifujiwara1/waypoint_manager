@@ -56,10 +56,12 @@
   <build_export_depend>waypoint_manager_msgs</build_export_depend>
   <build_export_depend>waypoint_server</build_export_depend>
   <build_export_depend>waypoint_visualization</build_export_depend>
+  <build_export_depend>rviz_plugin_goalradius</build_export_depend>
   <exec_depend>goal_event_handler</exec_depend>
   <exec_depend>waypoint_manager_msgs</exec_depend>
   <exec_depend>waypoint_server</exec_depend>
   <exec_depend>waypoint_visualization</exec_depend>
+  <exec_depend>rviz_plugin_goalradius</exec_depend>
 
 
   <!-- The export tag contains other, unspecified, tags -->

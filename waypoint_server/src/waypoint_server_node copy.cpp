@@ -7,19 +7,15 @@
 #include <Eigen/Dense>
 
 #include <ros/ros.h>
-#include <dynamic_reconfigure/client.h>
 
 #include <std_msgs/Bool.h>
 #include <std_msgs/String.h>
-#include <std_msgs/Float64.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 
 #include <std_srvs/Trigger.h>
 #include <topic_tools/MuxSelect.h>
-#include <dynamic_reconfigure/Reconfigure.h>
-#include "base_local_planner/BaseLocalPlannerConfig.h"
 
 #include <waypoint_manager_msgs/Waypoint.h>
 #include <waypoint_manager_msgs/WaypointStamped.h>
@@ -96,12 +92,9 @@ namespace waypoint_server
             save_route_service,
             reset_route_service,
             switch_cancel_service,
-            next_waypoint_service,
-            resume_waypoint_service;
+            next_waypoint_service;
 
-        ros::ServiceClient white_line_service,
-            detect_start_service;
-        // config_service;
+        ros::ServiceClient white_line_service;
 
         NodeParameters param;
 
@@ -139,11 +132,7 @@ namespace waypoint_server
         bool nextWaypoint(
             std_srvs::TriggerRequest &request,
             std_srvs::TriggerResponse &response);
-        bool resumeWaypoint(
-            std_srvs::TriggerRequest &request,
-            std_srvs::TriggerResponse &response);
         void Muxselect();
-        void detectstart();
 
         void publishGoal(),
             publishWaypoints(),
@@ -333,16 +322,8 @@ namespace waypoint_server
             "next_waypoint",
             &Node::nextWaypoint,
             this);
-        resume_waypoint_service = private_nh.advertiseService(
-            "resume_waypoint",
-            &Node::resumeWaypoint,
-            this);
         white_line_service = private_nh.serviceClient<topic_tools::MuxSelect>(
             "/mux/select");
-        detect_start_service = private_nh.serviceClient<std_srvs::Trigger>(
-            "/start_detect");
-        // config_service = private_nh.serviceClient<dynamic_reconfigure::Reconfigure>(
-        //     "/move_base/TrajectoryPlannerROS/set_parameters");
 
         is_cancel.store(true);
         regist_goal_id.store(0);
@@ -408,7 +389,6 @@ namespace waypoint_server
         {
             ROS_INFO("Current waypoint properties white is true");
             ROS_INFO("Please call the ~/resume_waypoint service");
-            detectstart();
         }
         if (!router.forwardIndex())
         {
@@ -613,32 +593,20 @@ namespace waypoint_server
         return true;
     }
 
-    bool Node::resumeWaypoint(
-        std_srvs::TriggerRequest &request,
-        std_srvs::TriggerResponse &response)
-    {
-        ROS_INFO("Called resumeWaypoint()");
-        Muxselect();
-
-        return true;
-    }
-
     void Node::Muxselect()
     {
         ROS_INFO("Called Muxselect()");
+
+        if (!router.forwardIndex())
+        {
+            ROS_WARN("Failed forward index for route");
+        }
         topic_tools::MuxSelect srv;
-        std::string str;
-        str = ("/nav_vel");
+        auto str = std::allocator<void>();
+        // str = str.allocate(10);
+        str.construct("/nav_vel");
         srv.request.topic = str;
         white_line_service.call(srv);
-    }
-
-    void Node::detectstart()
-    {
-        ROS_INFO("Called detectstart()");
-
-        std_srvs::Trigger trig;
-        detect_start_service.call(trig);
     }
 
     void Node::publishGoal()

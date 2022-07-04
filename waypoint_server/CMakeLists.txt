@@ -15,7 +15,12 @@ find_package(catkin REQUIRED COMPONENTS
     std_srvs
     tf
     waypoint_manager_msgs
+    dynamic_reconfigure
 )
+
+# generate_dynamic_reconfigure_options(
+#     src/navigation/base_local_planner/cfg/BaseLocalPlanner.cfg
+# )
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)

@@ -8,7 +8,11 @@ global_frame: map
 goal_publish_frequency: 0.5
 goal_check_frequency: 1.0
 default_goal_radius: 1.0
-waypoints_file: $(find waypoint_server)/config/waypoints/test.yaml
-route_file: $(find waypoint_server)/config/routes/test.yaml
+# waypoints_file: $(find waypoint_server)/config/waypoints/20220625_tsuda_ch.yaml
+waypoints_file: $(find waypoint_server)/config/waypoints/test3.yaml
+#waypoints_file: $(find waypoint_server)/config/waypoints/open_campus.yaml
+#route_file: $(find waypoint_server)/config/routes/20220625_tsuda_ch.yaml
+# route_file: $(find waypoint_server)/config/routes/open_campus.yaml
+route_file: $(find waypoint_server)/config/routes/test3.yaml
 enable_loop: true
 debug: false

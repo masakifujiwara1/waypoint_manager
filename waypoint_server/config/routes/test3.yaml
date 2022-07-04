@@ -1,0 +1,8 @@
+waypoint_server:
+  route:
+    count_of_skip_ids: 0
+    ids:
+      - 3
+      - registed_0_91705000000
+      - registed_0_95904000000
+      - registed_0_103573000000
