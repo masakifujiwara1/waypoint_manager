@@ -19,7 +19,7 @@
 #include <std_srvs/Trigger.h>
 #include <topic_tools/MuxSelect.h>
 #include <dynamic_reconfigure/Reconfigure.h>
-#include "base_local_planner/BaseLocalPlannerConfig.h"
+// #include "base_local_planner/BaseLocalPlannerConfig.h"
 
 #include <waypoint_manager_msgs/Waypoint.h>
 #include <waypoint_manager_msgs/WaypointStamped.h>

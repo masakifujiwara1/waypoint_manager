@@ -1,0 +1,8 @@
+<library path="librviz_plugin_goalradius">
+  <!-- Dial Panel -->
+  <class name="rviz_plugin_goalradius/DialPanel" type="rviz_plugin_goalradius::DialPanel" base_class_type="rviz::Panel">
+    <description>
+      Dial Panel plugin.
+    </description>
+  </class>
+</library>
