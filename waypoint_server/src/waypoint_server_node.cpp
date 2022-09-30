@@ -17,6 +17,7 @@
 #include <geometry_msgs/PointStamped.h>
 
 #include <std_srvs/Trigger.h>
+#include <std_srvs/SetBool.h>
 #include <topic_tools/MuxSelect.h>
 #include <dynamic_reconfigure/Reconfigure.h>
 // #include "base_local_planner/BaseLocalPlannerConfig.h"
@@ -28,7 +29,9 @@
 
 #include <waypoint_server/waypoint_server.h>
 
-namespace waypoint_server
+bool ON_flag = true
+
+    namespace waypoint_server
 {
     struct NodeParameters
     {
@@ -69,6 +72,9 @@ namespace waypoint_server
 
     class Node
     {
+
+        // bool ON_flag = true;
+
     public:
         Node();
 
@@ -100,7 +106,8 @@ namespace waypoint_server
             resume_waypoint_service;
 
         ros::ServiceClient white_line_service,
-            detect_start_service;
+            detect_start_service,
+            switch_segmentaiton_service;
         // config_service;
 
         NodeParameters param;
@@ -144,6 +151,7 @@ namespace waypoint_server
             std_srvs::TriggerResponse &response);
         void Muxselect();
         void detectstart();
+        void switch_segmentation();
 
         void publishGoal(),
             publishWaypoints(),
@@ -341,6 +349,8 @@ namespace waypoint_server
             "/mux/select");
         detect_start_service = private_nh.serviceClient<std_srvs::Trigger>(
             "/start_detect");
+        switch_segmentation_service = private_nh.serviceClient<std_srvs::SetBool>(
+            "/switch_segmentation");
         // config_service = private_nh.serviceClient<dynamic_reconfigure::Reconfigure>(
         //     "/move_base/TrajectoryPlannerROS/set_parameters");
 
@@ -409,6 +419,20 @@ namespace waypoint_server
             ROS_INFO("Current waypoint properties white is true");
             ROS_INFO("Please call the ~/resume_waypoint service");
             detectstart();
+        }
+        if (waypoint_map[router.getIndex()].properties["switch_segmentation_ON"] == "true")
+        {
+            ROS_INFO("Current waypoint properties switch_segmentation_ON is true");
+            // ROS_INFO("Please call the ~/resume_waypoint service");
+            ON_flag = true;
+            switch_segmentation();
+        }
+        if (waypoint_map[router.getIndex()].properties["switch_segmentation_OFF"] == "true")
+        {
+            ROS_INFO("Current waypoint properties switch_segmentation_OFF is true");
+            // ROS_INFO("Please call the ~/resume_waypoint service");
+            ON_flag = false;
+            switch_segmentation();
         }
         if (!router.forwardIndex())
         {
@@ -543,8 +567,8 @@ namespace waypoint_server
     }
 
     bool Node::save(
-        std_srvs::TriggerRequest &request,
-        std_srvs::TriggerResponse &response)
+        std_srvs::TriggerRequest & request,
+        std_srvs::TriggerResponse & response)
     {
         ROS_INFO("Called save()");
         waypoint_map.save(param.waypoints_file);
@@ -553,8 +577,8 @@ namespace waypoint_server
     }
 
     bool Node::saveWaypoints(
-        std_srvs::TriggerRequest &request,
-        std_srvs::TriggerResponse &response)
+        std_srvs::TriggerRequest & request,
+        std_srvs::TriggerResponse & response)
     {
         ROS_INFO("Called saveWaypoints()");
         waypoint_map.save(param.waypoints_file);
@@ -562,8 +586,8 @@ namespace waypoint_server
     }
 
     bool Node::saveRoute(
-        std_srvs::TriggerRequest &request,
-        std_srvs::TriggerResponse &response)
+        std_srvs::TriggerRequest & request,
+        std_srvs::TriggerResponse & response)
     {
         ROS_INFO("Called saveRoute()");
         router.save(param.route_file);
@@ -571,8 +595,8 @@ namespace waypoint_server
     }
 
     bool Node::resetRoute(
-        std_srvs::TriggerRequest &request,
-        std_srvs::TriggerResponse &response)
+        std_srvs::TriggerRequest & request,
+        std_srvs::TriggerResponse & response)
     {
         ROS_INFO("Called resetRoute()");
 
@@ -590,8 +614,8 @@ namespace waypoint_server
     };
 
     bool Node::switchCancel(
-        std_srvs::TriggerRequest &request,
-        std_srvs::TriggerResponse &response)
+        std_srvs::TriggerRequest & request,
+        std_srvs::TriggerResponse & response)
     {
         ROS_INFO("Called switchCancel()");
         exchangeCancelState();
@@ -599,8 +623,8 @@ namespace waypoint_server
     }
 
     bool Node::nextWaypoint(
-        std_srvs::TriggerRequest &request,
-        std_srvs::TriggerResponse &response)
+        std_srvs::TriggerRequest & request,
+        std_srvs::TriggerResponse & response)
     {
         ROS_INFO("Called nextWaypoint()");
 
@@ -614,8 +638,8 @@ namespace waypoint_server
     }
 
     bool Node::resumeWaypoint(
-        std_srvs::TriggerRequest &request,
-        std_srvs::TriggerResponse &response)
+        std_srvs::TriggerRequest & request,
+        std_srvs::TriggerResponse & response)
     {
         ROS_INFO("Called resumeWaypoint()");
         Muxselect();
@@ -639,6 +663,23 @@ namespace waypoint_server
 
         std_srvs::Trigger trig;
         detect_start_service.call(trig);
+    }
+
+    void Node::switch_segmentation()
+    {
+        ROS_INFO("Called switch_segmentation()");
+
+        std_srvs::SetBool data;
+        if (ON_flag == true)
+        {
+            data.data = true;
+            switch_segmentation_service.call(data);
+        }
+        else
+        {
+            data.data = false;
+            switch_segmentation_service.call(data);
+        }
     }
 
     void Node::publishGoal()
