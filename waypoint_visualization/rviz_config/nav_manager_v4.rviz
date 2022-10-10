@@ -514,7 +514,7 @@ Visualization Manager:
       left: 0
       top: 0
       type: EVA
-      diagnostics namespace: /
+      diagnostics namespace: YP-Spur Motor Controller
       Topic: /diagnostics
   Enabled: true
   Global Options:
