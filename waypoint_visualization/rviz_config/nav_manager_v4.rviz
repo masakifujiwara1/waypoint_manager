@@ -525,7 +525,7 @@ Visualization Manager:
       left: 0
       top: 50
       type: EVA
-      diagnostics namespace: ekf_localization_node:odometry/filteredtopic status
+      diagnostics namespace: "ekf_localization_node: odometry/filteredtopic status"
       Topic: /diagnostics
       Enabled: true
       Value: true
@@ -536,7 +536,7 @@ Visualization Manager:
       left: 0
       top: 100
       type: EVA
-      diagnostics namespace: urg_node:Hardware Status
+      diagnostics namespace: "urg_node: Hardware Status"
       Topic: /diagnostics
       Enabled: true
       Value: true
@@ -547,7 +547,7 @@ Visualization Manager:
       left: 0
       top: 150
       type: EVA
-      diagnostics namespace: urg_node:Laser Scan topic status
+      diagnostics namespace: "urg_node: Laser Scan topic status"
       Topic: /diagnostics
       Enabled: true
       Value: true
@@ -558,7 +558,7 @@ Visualization Manager:
       left: 0
       top: 200
       type: EVA
-      diagnostics namespace: joy_node:Joystick Driver Status
+      diagnostics namespace: "joy_node: Joystick Driver Status"
       Topic: /diagnostics
       Enabled: true
       Value: true
