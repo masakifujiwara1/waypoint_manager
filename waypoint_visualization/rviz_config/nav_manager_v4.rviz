@@ -525,7 +525,7 @@ Visualization Manager:
       left: 0
       top: 50
       type: EVA
-      diagnostics namespace: "ekf_localization_node: odometry/filteredtopic status"
+      diagnostics namespace: "ekf_localization_node: odometry/filtered topic status"
       Topic: /diagnostics
       Enabled: true
       Value: true
