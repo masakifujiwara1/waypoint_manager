@@ -514,8 +514,8 @@ Visualization Manager:
       left: 0
       top: 0
       type: EVA
-      diagnostics namespace: 
-      Topic: diagnostics
+      diagnostics namespace: /
+      Topic: /diagnostics
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
