@@ -507,7 +507,7 @@ Visualization Manager:
       Topic: /waypoint_manager/route/path
       Unreliable: false
       Value: true
-    - Class: jsk_rviz_plugins
+    - Class: jsk_rviz_plugins/OverlayDiagnostic
       stall duration: 5
       alpha: 1
       size: 128
