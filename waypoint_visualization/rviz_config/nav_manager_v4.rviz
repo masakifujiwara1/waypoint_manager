@@ -516,6 +516,8 @@ Visualization Manager:
       type: EVA
       diagnostics namespace: YP-Spur Motor Controller
       Topic: /diagnostics
+      Enabled: true
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
