@@ -507,14 +507,58 @@ Visualization Manager:
       Topic: /waypoint_manager/route/path
       Unreliable: false
       Value: true
-    - Class: jsk_rviz_plugins/OverlayDiagnostic
+    - Class: jsk_rviz_plugin/OverlayDiagnostic
       stall duration: 5
       alpha: 1
-      size: 128
+      size: 140
       left: 0
       top: 0
       type: EVA
       diagnostics namespace: YP-Spur Motor Controller
+      Topic: /diagnostics
+      Enabled: true
+      Value: true
+    - Class: jsk_rviz_plugin/OverlayDiagnostic
+      stall duration: 5
+      alpha: 1
+      size: 140
+      left: 0
+      top: 50
+      type: EVA
+      diagnostics namespace: ekf_localization_node:odometry/filteredtopic status
+      Topic: /diagnostics
+      Enabled: true
+      Value: true
+    - Class: jsk_rviz_plugin/OverlayDiagnostic
+      stall duration: 5
+      alpha: 1
+      size: 140
+      left: 0
+      top: 100
+      type: EVA
+      diagnostics namespace: urg_node:Hardware Status
+      Topic: /diagnostics
+      Enabled: true
+      Value: true
+    - Class: jsk_rviz_plugin/OverlayDiagnostic
+      stall duration: 5
+      alpha: 1
+      size: 140
+      left: 0
+      top: 150
+      type: EVA
+      diagnostics namespace: urg_node:Laser Scan topic status
+      Topic: /diagnostics
+      Enabled: true
+      Value: true
+    - Class: jsk_rviz_plugin/OverlayDiagnostic
+      stall duration: 5
+      alpha: 1
+      size: 140
+      left: 0
+      top: 200
+      type: EVA
+      diagnostics namespace: joy_node:Joystick Driver Status
       Topic: /diagnostics
       Enabled: true
       Value: true
