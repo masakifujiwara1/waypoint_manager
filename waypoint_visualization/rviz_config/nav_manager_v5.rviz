@@ -581,7 +581,6 @@ Visualization Manager:
       border: true
       text size: 12
       show caption: true
-      caption: alpha
       update interval: 0.04
       auto color change: true
       max color: 255; 0; 0
