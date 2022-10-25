@@ -586,6 +586,7 @@ Visualization Manager:
       max color: 255; 0; 0
       Enabled: true
       Value: true
+      Name: alpha
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
