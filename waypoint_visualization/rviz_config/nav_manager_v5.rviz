@@ -576,7 +576,7 @@ Visualization Manager:
       foreground color: 0; 0; 0
       foreground alpha: 1
       background color: 238; 238; 236
-      background alpha: 1
+      backround alpha: 1
       linewidth: 2
       border: true
       text size: 12
