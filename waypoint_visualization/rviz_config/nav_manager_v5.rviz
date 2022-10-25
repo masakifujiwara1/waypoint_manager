@@ -584,6 +584,8 @@ Visualization Manager:
       update interval: 0.04
       auto color change: true
       max color: 255; 0; 0
+      Enabled: true
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
