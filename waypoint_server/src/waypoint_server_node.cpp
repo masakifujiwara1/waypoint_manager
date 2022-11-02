@@ -16,6 +16,7 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 
+#include <std_srvs/Empty.h>
 #include <std_srvs/Trigger.h>
 #include <std_srvs/SetBool.h>
 #include <topic_tools/MuxSelect.h>
@@ -107,7 +108,10 @@ namespace waypoint_server
 
         ros::ServiceClient white_line_service,
             detect_start_service,
-            switch_segmentation_service;
+            switch_segmentation_service,
+            stop_service,
+            traffic_service,
+            clear_costmap_service;
         // config_service;
 
         NodeParameters param;
@@ -152,6 +156,9 @@ namespace waypoint_server
         void Muxselect();
         void detectstart();
         void switch_segmentation();
+        void TrafficSignService();
+        void StopService();
+        void ClearCostmapService();
 
         void publishGoal(),
             publishWaypoints(),
@@ -351,8 +358,9 @@ namespace waypoint_server
             "/start_detect");
         switch_segmentation_service = private_nh.serviceClient<std_srvs::SetBool>(
             "/switch_segmentation");
-        // config_service = private_nh.serviceClient<dynamic_reconfigure::Reconfigure>(
-        //     "/move_base/TrajectoryPlannerROS/set_parameters");
+        stop_service = private_nh.serviceClient<std_srvs::SetBool>("/stop_service");
+        traffic_service = private_nh.serviceClient<std_srvs::SetBool>("/traffic_service");
+        clear_costmap_service = private_nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
 
         is_cancel.store(true);
         regist_goal_id.store(0);
@@ -412,6 +420,7 @@ namespace waypoint_server
         {
             ROS_INFO("Current waypoint properties stop is true");
             ROS_INFO("Please call the ~/next_waypoint service");
+            StopService();
             return;
         }
         if (waypoint_map[router.getIndex()].properties["white"] == "true")
@@ -419,6 +428,12 @@ namespace waypoint_server
             ROS_INFO("Current waypoint properties white is true");
             ROS_INFO("Please call the ~/resume_waypoint service");
             detectstart();
+        }
+        if (waypoint_map[router.getIndex()].properties["traffic"] == "true")
+        {
+            ROS_INFO("Current waypoint properties traffic is true");
+            // ROS_INFO("Please call the ~/resume_waypoint service");
+            TrafficSignService();
         }
         if (waypoint_map[router.getIndex()].properties["switch_segmentation_ON"] == "true")
         {
@@ -645,6 +660,29 @@ namespace waypoint_server
         Muxselect();
 
         return true;
+    }
+
+    void Node::ClearCostmapService()
+    {
+        ROS_INFO("Called clear_costmap_service()");
+        // std_srvs::Empty data;
+        // clear_costmap_service.call(data);
+    }
+
+    void Node::StopService()
+    {
+        ROS_INFO("Called stop_service()");
+        std_srvs::SetBool data;
+        data.request.data = true;
+        stop_service.call(data);
+    }
+
+    void Node::TrafficSignService()
+    {
+        ROS_INFO("Called traffic_service()");
+        std_srvs::SetBool data;
+        data.request.data = true;
+        traffic_service.call(data);
     }
 
     void Node::Muxselect()
