@@ -1,8 +1,17 @@
 waypoint_server:
   route:
-    count_of_skip_ids: 0
     ids:
       - 3
       - registed_0_91705000000
       - registed_0_95904000000
       - registed_0_103573000000
+      - registed_0_86754000000
+      - registed_0_91086000000
+      - registed_0_96504000000
+      - registed_0_132722000000
+      - registed_0_159234000000
+      - registed_0_163413000000
+      - registed_0_173706000000
+      - registed_0_211328000000
+      - registed_0_219557000000
+    count_of_skip_ids: 0
