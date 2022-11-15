@@ -30,7 +30,8 @@
 
 #include <waypoint_server/waypoint_server.h>
 
-bool ON_flag = true;
+bool seg_flag = true;
+bool traffic_flag = true;
 
 namespace waypoint_server
 {
@@ -74,7 +75,7 @@ namespace waypoint_server
     class Node
     {
 
-        // bool ON_flag = true;
+        // bool seg_flag = true;
 
     public:
         Node();
@@ -429,24 +430,32 @@ namespace waypoint_server
             ROS_INFO("Please call the ~/resume_waypoint service");
             detectstart();
         }
-        if (waypoint_map[router.getIndex()].properties["traffic"] == "true")
+        if (waypoint_map[router.getIndex()].properties["traffic_sign_ON"] == "true")
         {
-            ROS_INFO("Current waypoint properties traffic is true");
+            ROS_INFO("Current waypoint properties traffic_sign_ON is true");
             // ROS_INFO("Please call the ~/resume_waypoint service");
+            traffic_flag = true;
+            TrafficSignService();
+        }
+        if (waypoint_map[router.getIndex()].properties["traffic_sign_OFF"] == "true")
+        {
+            ROS_INFO("Current waypoint properties traffic_sign_OFF is true");
+            // ROS_INFO("Please call the ~/resume_waypoint service");
+            traffic_flag = false;
             TrafficSignService();
         }
         if (waypoint_map[router.getIndex()].properties["switch_segmentation_ON"] == "true")
         {
             ROS_INFO("Current waypoint properties switch_segmentation_ON is true");
             // ROS_INFO("Please call the ~/resume_waypoint service");
-            ON_flag = true;
+            seg_flag = true;
             switch_segmentation();
         }
         if (waypoint_map[router.getIndex()].properties["switch_segmentation_OFF"] == "true")
         {
             ROS_INFO("Current waypoint properties switch_segmentation_OFF is true");
             // ROS_INFO("Please call the ~/resume_waypoint service");
-            ON_flag = false;
+            seg_flag = false;
             switch_segmentation();
         }
         if (!router.forwardIndex())
@@ -649,6 +658,13 @@ namespace waypoint_server
         }
         publishGoal();
 
+        // fall stop flag
+        std_srvs::SetBool data;
+        data.request.data = false;
+        stop_service.call(data);
+
+        ClearCostmapService();
+
         return true;
     }
 
@@ -665,8 +681,8 @@ namespace waypoint_server
     void Node::ClearCostmapService()
     {
         ROS_INFO("Called clear_costmap_service()");
-        // std_srvs::Empty data;
-        // clear_costmap_service.call(data);
+        std_srvs::Empty data;
+        clear_costmap_service.call(data);
     }
 
     void Node::StopService()
@@ -677,12 +693,29 @@ namespace waypoint_server
         stop_service.call(data);
     }
 
+    // void Node::TrafficSignService()
+    // {
+    //     ROS_INFO("Called traffic_service()");
+    //     std_srvs::SetBool data;
+    //     data.request.data = true;
+    //     traffic_service.call(data);
+    // }
+
     void Node::TrafficSignService()
     {
         ROS_INFO("Called traffic_service()");
+
         std_srvs::SetBool data;
-        data.request.data = true;
-        traffic_service.call(data);
+        if (traffic_flag)
+        {
+            data.request.data = true;
+            traffic_service.call(data);
+        }
+        else
+        {
+            data.request.data = false;
+            traffic_service.call(data);
+        }
     }
 
     void Node::Muxselect()
@@ -708,7 +741,7 @@ namespace waypoint_server
         ROS_INFO("Called switch_segmentation()");
 
         std_srvs::SetBool data;
-        if (ON_flag)
+        if (seg_flag)
         {
             data.request.data = true;
             switch_segmentation_service.call(data);

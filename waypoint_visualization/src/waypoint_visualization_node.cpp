@@ -83,7 +83,8 @@ private:
     void insertRouteFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
     void switchStopPointFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
     void whitelinePointFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
-    void TrafficSignFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+    void trafficsignFeedback1(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+    void trafficsignFeedback2(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
     void SetGoalRadiusFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
     void goalradiusFeedback1(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
     void goalradiusFeedback2(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
@@ -231,14 +232,39 @@ Node::Node() : nh(), private_nh("~"), interactive_server("waypoint_visualization
             std::placeholders::_1));
     menu_handler.setCheckState(stop_point_menu_id, interactive_markers::MenuHandler::UNCHECKED);
 
-    auto traffic_menu_id = menu_handler.insert(
+    // auto traffic_menu_id = menu_handler.insert(
+    //     properties_menu_id,
+    //     "Traffic sign point",
+    //     std::bind(
+    //         &Node::TrafficSignFeedback,
+    //         this,
+    //         std::placeholders::_1));
+    // menu_handler.setCheckState(traffic_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+
+    //
+
+    auto traffic_sign_menu_id = menu_handler.insert(
         properties_menu_id,
-        "Traffic sign point",
+        "Traffic sign point");
+    auto traffic_sign_child_menu_id1 = menu_handler.insert(
+        traffic_sign_menu_id,
+        "ON",
         std::bind(
-            &Node::TrafficSignFeedback,
+            &Node::trafficsignFeedback1,
             this,
             std::placeholders::_1));
-    menu_handler.setCheckState(traffic_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+    menu_handler.setCheckState(traffic_sign_child_menu_id1, interactive_markers::MenuHandler::UNCHECKED);
+
+    auto traffic_sign_child_menu_id2 = menu_handler.insert(
+        traffic_sign_menu_id,
+        "OFF",
+        std::bind(
+            &Node::trafficsignFeedback2,
+            this,
+            std::placeholders::_1));
+    menu_handler.setCheckState(traffic_sign_child_menu_id2, interactive_markers::MenuHandler::UNCHECKED);
+
+    //
 
     auto white_line_menu_id = menu_handler.insert(
         properties_menu_id,
@@ -755,9 +781,50 @@ void Node::whitelinePointFeedback(const visualization_msgs::InteractiveMarkerFee
     interactive_server.applyChanges();
 }
 
-void Node::TrafficSignFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
+// void Node::TrafficSignFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
+// {
+//     ROS_INFO("Called TrafficSignFeedback %s", feedback->marker_name.c_str());
+
+//     interactive_markers::MenuHandler::EntryHandle entry_menu_id = feedback->menu_entry_id;
+//     interactive_markers::MenuHandler::CheckState menu_check_state;
+//     waypoint_manager_msgs::WaypointStamped msg;
+
+//     menu_handler.getCheckState(entry_menu_id, menu_check_state);
+
+//     if (menu_check_state == interactive_markers::MenuHandler::CHECKED)
+//     {
+//         menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+
+//         msg.waypoint.properties.push_back(waypoint_manager_msgs::Property());
+//         msg.waypoint.properties.back().name = "traffic";
+//         msg.waypoint.properties.back().data = "false";
+//     }
+//     else if (menu_check_state == interactive_markers::MenuHandler::UNCHECKED)
+//     {
+//         menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::CHECKED);
+
+//         msg.waypoint.properties.push_back(waypoint_manager_msgs::Property());
+//         msg.waypoint.properties.back().name = "traffic";
+//         msg.waypoint.properties.back().data = "true";
+//     }
+//     else
+//     {
+//         menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+//     }
+//     msg.waypoint.pose = feedback->pose;
+//     msg.waypoint.identity = feedback->marker_name;
+//     msg.header.frame_id = feedback->header.frame_id;
+//     msg.header.stamp = ros::Time::now();
+//     update_waypoint_publisher.publish(msg);
+
+//     menu_handler.reApply(interactive_server);
+//     interactive_server.applyChanges();
+// }
+
+//
+void Node::trafficsignFeedback1(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
-    ROS_INFO("Called TrafficSignFeedback %s", feedback->marker_name.c_str());
+    ROS_INFO("Called trafficsignFeedback1 %s", feedback->marker_name.c_str());
 
     interactive_markers::MenuHandler::EntryHandle entry_menu_id = feedback->menu_entry_id;
     interactive_markers::MenuHandler::CheckState menu_check_state;
@@ -770,7 +837,7 @@ void Node::TrafficSignFeedback(const visualization_msgs::InteractiveMarkerFeedba
         menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::UNCHECKED);
 
         msg.waypoint.properties.push_back(waypoint_manager_msgs::Property());
-        msg.waypoint.properties.back().name = "traffic";
+        msg.waypoint.properties.back().name = "traffic_sign_ON";
         msg.waypoint.properties.back().data = "false";
     }
     else if (menu_check_state == interactive_markers::MenuHandler::UNCHECKED)
@@ -778,7 +845,7 @@ void Node::TrafficSignFeedback(const visualization_msgs::InteractiveMarkerFeedba
         menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::CHECKED);
 
         msg.waypoint.properties.push_back(waypoint_manager_msgs::Property());
-        msg.waypoint.properties.back().name = "traffic";
+        msg.waypoint.properties.back().name = "traffic_sign_ON";
         msg.waypoint.properties.back().data = "true";
     }
     else
@@ -794,6 +861,47 @@ void Node::TrafficSignFeedback(const visualization_msgs::InteractiveMarkerFeedba
     menu_handler.reApply(interactive_server);
     interactive_server.applyChanges();
 }
+
+void Node::trafficsignFeedback2(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
+{
+    ROS_INFO("Called trafficsignFeedback2 %s", feedback->marker_name.c_str());
+
+    interactive_markers::MenuHandler::EntryHandle entry_menu_id = feedback->menu_entry_id;
+    interactive_markers::MenuHandler::CheckState menu_check_state;
+    waypoint_manager_msgs::WaypointStamped msg;
+
+    menu_handler.getCheckState(entry_menu_id, menu_check_state);
+
+    if (menu_check_state == interactive_markers::MenuHandler::CHECKED)
+    {
+        menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+
+        msg.waypoint.properties.push_back(waypoint_manager_msgs::Property());
+        msg.waypoint.properties.back().name = "traffic_sign_OFF";
+        msg.waypoint.properties.back().data = "false";
+    }
+    else if (menu_check_state == interactive_markers::MenuHandler::UNCHECKED)
+    {
+        menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::CHECKED);
+
+        msg.waypoint.properties.push_back(waypoint_manager_msgs::Property());
+        msg.waypoint.properties.back().name = "traffic_sign_OFF";
+        msg.waypoint.properties.back().data = "true";
+    }
+    else
+    {
+        menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+    }
+    msg.waypoint.pose = feedback->pose;
+    msg.waypoint.identity = feedback->marker_name;
+    msg.header.frame_id = feedback->header.frame_id;
+    msg.header.stamp = ros::Time::now();
+    update_waypoint_publisher.publish(msg);
+
+    menu_handler.reApply(interactive_server);
+    interactive_server.applyChanges();
+}
+//
 
 void Node::switchsegmentationFeedback1(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
 {
