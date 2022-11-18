@@ -3,6 +3,8 @@
 #include <string>
 #include <functional>
 #include <thread>
+#include <stdio.h>
+#include <time.h>
 
 #include <Eigen/Dense>
 
@@ -32,6 +34,11 @@
 
 bool seg_flag = true;
 bool traffic_flag = true;
+
+// skipWaypointする際の秒数指定
+double skip_sec = 150.0;
+// clock_t start_clock, end_clock;
+time_t start_time, end_time;
 
 namespace waypoint_server
 {
@@ -74,8 +81,6 @@ namespace waypoint_server
 
     class Node
     {
-
-        // bool seg_flag = true;
 
     public:
         Node();
@@ -160,6 +165,7 @@ namespace waypoint_server
         void TrafficSignService();
         void StopService();
         void ClearCostmapService();
+        void skipWaypoint();
 
         void publishGoal(),
             publishWaypoints(),
@@ -393,6 +399,15 @@ namespace waypoint_server
         while (ros::ok())
         {
             publishGoal();
+            if (!is_cancel.load())
+            {
+                end_time = time(NULL);
+                printf("time:%ld\n", end_time - start_time);
+                if (end_time - start_time >= skip_sec)
+                {
+                    skipWaypoint();
+                }
+            }
             rate.sleep();
         }
         ros::shutdown();
@@ -422,6 +437,7 @@ namespace waypoint_server
             ROS_INFO("Current waypoint properties stop is true");
             ROS_INFO("Please call the ~/next_waypoint service");
             StopService();
+            start_time = time(NULL);
             return;
         }
         if (waypoint_map[router.getIndex()].properties["white"] == "true")
@@ -466,6 +482,7 @@ namespace waypoint_server
         else
         {
             publishGoal();
+            start_time = time(NULL);
         }
     }
 
@@ -643,6 +660,8 @@ namespace waypoint_server
     {
         ROS_INFO("Called switchCancel()");
         exchangeCancelState();
+        // start_clock = clock();
+        start_time = time(NULL);
         return true;
     }
 
@@ -665,7 +684,23 @@ namespace waypoint_server
 
         ClearCostmapService();
 
+        start_time = time(NULL);
+
         return true;
+    }
+
+    void Node::skipWaypoint()
+    {
+        ROS_INFO("Called skipWaypoint()");
+
+        if (!router.forwardIndex())
+        {
+            ROS_WARN("Failed forward index for route");
+        }
+
+        start_time = time(NULL);
+
+        publishGoal();
     }
 
     bool Node::resumeWaypoint(
