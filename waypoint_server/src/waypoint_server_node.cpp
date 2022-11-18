@@ -15,6 +15,7 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 
@@ -34,11 +35,15 @@
 
 bool seg_flag = true;
 bool traffic_flag = true;
+bool skip_flag = false;
 
 // skipWaypointする際の秒数指定
-double skip_sec = 150.0;
+double skip_sec = 0.0;
+double skip_vel = 0.05;
+double to_skip_sec = 30.0;
 // clock_t start_clock, end_clock;
 time_t start_time, end_time;
+time_t start_skip_time, end_skip_time;
 
 namespace waypoint_server
 {
@@ -102,7 +107,8 @@ namespace waypoint_server
             update_goal_subscriber,
             append_route_subscriber,
             erase_route_subscriber,
-            insert_route_subscriber;
+            insert_route_subscriber,
+            cmd_vel_subscriber;
 
         ros::ServiceServer save_service,
             save_waypoints_service,
@@ -136,7 +142,8 @@ namespace waypoint_server
             updateGoalPose(const waypoint_manager_msgs::WaypointStamped::ConstPtr &),
             appendRoute(const std_msgs::String::ConstPtr &),
             eraseRoute(const std_msgs::String::ConstPtr &),
-            insertRoute(const std_msgs::String::ConstPtr &);
+            insertRoute(const std_msgs::String::ConstPtr &),
+            cmd_vel_(const geometry_msgs::Twist::ConstPtr &);
 
         bool save(
             std_srvs::TriggerRequest &request,
@@ -330,6 +337,11 @@ namespace waypoint_server
             param.subscribe_queue_size,
             &Node::insertRoute,
             this);
+        cmd_vel_subscriber = nh.subscribe<geometry_msgs::Twist>(
+            "/cmd_vel",
+            10,
+            &Node::cmd_vel_,
+            this);
 
         save_service = private_nh.advertiseService(
             "save",
@@ -403,10 +415,19 @@ namespace waypoint_server
             {
                 end_time = time(NULL);
                 printf("time:%ld\n", end_time - start_time);
-                if (end_time - start_time >= skip_sec)
+                if ((end_time - start_time >= skip_sec) && (skip_flag))
                 {
                     skipWaypoint();
+                    start_time = time(NULL);
+                    start_skip_time = time(NULL);
+                    skip_flag = false;
                 }
+            }
+            else
+            {
+                start_time = time(NULL);
+                start_skip_time = time(NULL);
+                printf("wait!\n");
             }
             rate.sleep();
         }
@@ -423,6 +444,9 @@ namespace waypoint_server
         }
         if (is_cancel.load())
         {
+            // start_time = time(NULL);
+            // start_skip_time = time(NULL);
+            // printf("cancel");
             return;
         }
         if (!msg->data)
@@ -482,7 +506,7 @@ namespace waypoint_server
         else
         {
             publishGoal();
-            start_time = time(NULL);
+            // start_time = time(NULL);
         }
     }
 
@@ -585,6 +609,29 @@ namespace waypoint_server
         publishLatchedData();
     }
 
+    void Node::cmd_vel_(const geometry_msgs::Twist::ConstPtr &msg)
+    {
+        float vel_x;
+        vel_x = msg->linear.x;
+        if (vel_x <= skip_vel)
+        {
+            end_skip_time = time(NULL);
+            if ((end_skip_time - start_skip_time) >= to_skip_sec)
+            {
+                start_time = time(NULL);
+                printf("skip count start!\n");
+                start_skip_time = time(NULL);
+                skip_flag = true;
+            }
+        }
+        else
+        {
+            start_skip_time = time(NULL);
+            // start_time = time(NULL);
+        }
+        // printf("%lf\n", vel_x);
+    }
+
     void Node::insertRoute(const std_msgs::String::ConstPtr &msg)
     {
         if (!waypoint_map.hasKey(msg->data))
@@ -684,7 +731,7 @@ namespace waypoint_server
 
         ClearCostmapService();
 
-        start_time = time(NULL);
+        // start_time = time(NULL);
 
         return true;
     }
@@ -698,9 +745,15 @@ namespace waypoint_server
             ROS_WARN("Failed forward index for route");
         }
 
-        start_time = time(NULL);
+        // start_time = time(NULL);
 
         publishGoal();
+
+        std_srvs::SetBool data;
+        data.request.data = false;
+        stop_service.call(data);
+
+        ClearCostmapService();
     }
 
     bool Node::resumeWaypoint(
