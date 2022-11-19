@@ -37,11 +37,15 @@ bool seg_flag = true;
 bool traffic_flag = true;
 bool skip_flag = false;
 
+// SKIP_WAYPOINT
 // skipWaypointする際の秒数指定
 double skip_sec = 0.0;
+double to_skip_sec = 90.0;
+// skipする速度
 double skip_vel = 0.05;
-double to_skip_sec = 30.0;
-// clock_t start_clock, end_clock;
+// use_skipwaypoint
+bool use_skip = true;
+
 time_t start_time, end_time;
 time_t start_skip_time, end_skip_time;
 
@@ -414,10 +418,11 @@ namespace waypoint_server
             if (!is_cancel.load())
             {
                 end_time = time(NULL);
-                printf("time:%ld\n", end_time - start_time);
+                printf("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
                 if ((end_time - start_time >= skip_sec) && (skip_flag))
                 {
-                    skipWaypoint();
+                    if (use_skip)
+                        skipWaypoint();
                     start_time = time(NULL);
                     start_skip_time = time(NULL);
                     skip_flag = false;
@@ -613,9 +618,9 @@ namespace waypoint_server
     {
         float vel_x;
         vel_x = msg->linear.x;
+        end_skip_time = time(NULL);
         if (vel_x <= skip_vel)
         {
-            end_skip_time = time(NULL);
             if ((end_skip_time - start_skip_time) >= to_skip_sec)
             {
                 start_time = time(NULL);
