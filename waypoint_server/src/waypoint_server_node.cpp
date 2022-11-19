@@ -421,7 +421,7 @@ namespace waypoint_server
                 printf("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
                 if ((end_time - start_time >= skip_sec) && (skip_flag))
                 {
-                    if (use_skip)
+                    if ((use_skip) && !(waypoint_map[router.getIndex()].properties["stop"] == "true"))
                         skipWaypoint();
                     start_time = time(NULL);
                     start_skip_time = time(NULL);
@@ -434,6 +434,9 @@ namespace waypoint_server
                 start_skip_time = time(NULL);
                 printf("wait!\n");
             }
+
+            // printf("waypoint_info:%s\n", waypoint_map[router.getIndex()].properties["stop"].c_str());
+
             rate.sleep();
         }
         ros::shutdown();
