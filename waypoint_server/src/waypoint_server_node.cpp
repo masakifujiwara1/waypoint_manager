@@ -1,10 +1,11 @@
-
 #include <iostream>
 #include <string>
 #include <functional>
 #include <thread>
 #include <stdio.h>
 #include <time.h>
+
+using namespace std;
 
 #include <Eigen/Dense>
 
@@ -24,7 +25,9 @@
 #include <std_srvs/SetBool.h>
 #include <topic_tools/MuxSelect.h>
 #include <dynamic_reconfigure/Reconfigure.h>
-// #include "base_local_planner/BaseLocalPlannerConfig.h"
+
+#include <obstacle_detector/Obstacles.h>
+#include <obstacle_detector/CircleObstacle.h>
 
 #include <waypoint_manager_msgs/Waypoint.h>
 #include <waypoint_manager_msgs/WaypointStamped.h>
@@ -33,14 +36,17 @@
 
 #include <waypoint_server/waypoint_server.h>
 
+#define SIZE_OF_ARRAY(array) (sizeof(array) / sizeof(array[0]))
+
 bool seg_flag = true;
 bool traffic_flag = true;
 bool skip_flag = false;
+bool obstacle_flag = true;
 
 // SKIP_WAYPOINT
 // skipWaypointする際の秒数指定
 double skip_sec = 0.0;
-double to_skip_sec = 90.0;
+double to_skip_sec = 120.0;
 // skipする速度
 double skip_vel = 0.05;
 // use_skipwaypoint
@@ -48,6 +54,7 @@ bool use_skip = true;
 
 time_t start_time, end_time;
 time_t start_skip_time, end_skip_time;
+double goal_X, goal_Y;
 
 namespace waypoint_server
 {
@@ -112,7 +119,8 @@ namespace waypoint_server
             append_route_subscriber,
             erase_route_subscriber,
             insert_route_subscriber,
-            cmd_vel_subscriber;
+            cmd_vel_subscriber,
+            obstacle_pos_subscriber;
 
         ros::ServiceServer save_service,
             save_waypoints_service,
@@ -147,7 +155,8 @@ namespace waypoint_server
             appendRoute(const std_msgs::String::ConstPtr &),
             eraseRoute(const std_msgs::String::ConstPtr &),
             insertRoute(const std_msgs::String::ConstPtr &),
-            cmd_vel_(const geometry_msgs::Twist::ConstPtr &);
+            cmd_vel_(const geometry_msgs::Twist::ConstPtr &),
+            obstacle_pos(const obstacle_detector::Obstacles::ConstPtr &);
 
         bool save(
             std_srvs::TriggerRequest &request,
@@ -346,6 +355,11 @@ namespace waypoint_server
             10,
             &Node::cmd_vel_,
             this);
+        obstacle_pos_subscriber = nh.subscribe<obstacle_detector::Obstacles>(
+            "/obstacles",
+            10,
+            &Node::obstacle_pos,
+            this);
 
         save_service = private_nh.advertiseService(
             "save",
@@ -470,7 +484,15 @@ namespace waypoint_server
             ROS_INFO("Please call the ~/next_waypoint service");
             StopService();
             start_time = time(NULL);
+            to_skip_sec = time(NULL);
             return;
+        }
+        if (waypoint_map[router.getIndex()].properties["standby_mode"] == "true")
+        {
+            ROS_INFO("Current waypoint properties standby_mode is true");
+            to_skip_sec = time(NULL);
+            if (obstacle_flag)
+                return;
         }
         if (waypoint_map[router.getIndex()].properties["white"] == "true")
         {
@@ -638,6 +660,44 @@ namespace waypoint_server
             // start_time = time(NULL);
         }
         // printf("%lf\n", vel_x);
+    }
+
+    void Node::obstacle_pos(const obstacle_detector::Obstacles::ConstPtr &msg)
+    {
+        int count = 0;
+        Eigen::Vector2f distance_of_goal;
+        double x, y;
+        obstacle_detector::Obstacles obstacle;
+        obstacle.circles = msg->circles;
+
+        // std::cout << obstacle.circles.size() << std::endl;
+
+        for (int i = 0; i < obstacle.circles.size(); i++)
+        {
+            x = obstacle.circles[i].center.x;
+            y = obstacle.circles[i].center.y;
+
+            //  judge
+            distance_of_goal.x() = goal_X - x;
+            distance_of_goal.y() = goal_Y - y;
+            if (distance_of_goal.lpNorm<2>() < 0.3)
+            {
+                // ROS_INFO("obstacle_detect!!!");
+                obstacle_flag = true;
+                break;
+                // count++;
+            }
+            else
+            // {
+            //     count++;
+            // }
+            // if (count >= obstacle.circles.size() - 1)
+            {
+                obstacle_flag = false;
+                // printf("obstacle_flag false");
+            }
+        }
+        count = 0;
     }
 
     void Node::insertRoute(const std_msgs::String::ConstPtr &msg)
@@ -862,6 +922,8 @@ namespace waypoint_server
         const auto pose_vector = waypoint_map[router.getIndex()].goal;
         const auto orientation = waypoint_map[router.getIndex()].quaternion;
 
+        const auto pose_vector_next = waypoint_map[router.getIndexNext()].goal;
+
         waypoint_manager_msgs::Waypoint waypoint;
 
         waypoint.identity = router.getIndex();
@@ -872,6 +934,9 @@ namespace waypoint_server
         waypoint.pose.orientation.y = orientation.y();
         waypoint.pose.orientation.z = orientation.z();
         waypoint.pose.orientation.w = orientation.w();
+
+        goal_X = pose_vector_next.x();
+        goal_Y = pose_vector_next.y();
 
         for (const auto &[name, value] : waypoint_map[router.getIndex()].properties)
         {

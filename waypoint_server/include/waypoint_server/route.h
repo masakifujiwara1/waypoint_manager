@@ -8,56 +8,58 @@
 
 #include "map.h"
 
-namespace waypoint_server {
-    class Route {
-        public :
-            using Data = std::vector<Map::Key>;
+namespace waypoint_server
+{
+    class Route
+    {
+    public:
+        using Data = std::vector<Map::Key>;
 
-            static constexpr bool SUCCESS = true,
-                                  FAILED = false;
+        static constexpr bool SUCCESS = true,
+                              FAILED = false;
 
-            Route(const bool &debug = false);
+        Route(const bool &debug = false);
 
-            const bool skip(const unsigned int &count_of_ids);
-            void loop(const bool &);
+        const bool skip(const unsigned int &count_of_ids);
+        void loop(const bool &);
 
-            void load(const std::string &filename);
-            void save(const std::string &filename);
+        void load(const std::string &filename);
+        void save(const std::string &filename);
 
-            void resetIndex() noexcept;
-            const bool forwardIndex();
-            const Map::Key &getIndex();
+        void resetIndex() noexcept;
+        const bool forwardIndex();
+        const Map::Key &getIndex();
+        const Map::Key &getIndexNext();
 
-            const unsigned int &getSkipIds() const;
+        const unsigned int &getSkipIds() const;
 
-            const bool isEmpty() const;
-            const bool isFinish();
+        const bool isEmpty() const;
+        const bool isFinish();
 
-            const bool hasKey(const Map::Key &);
+        const bool hasKey(const Map::Key &);
 
-            void append(const Map::Key &);
-            bool insert(const int &base_posision, const Map::Key &);
-            bool insertFromKey(const Map::Key &, const Map::Key &insert_key, const bool &reverse = true);
+        void append(const Map::Key &);
+        bool insert(const int &base_posision, const Map::Key &);
+        bool insertFromKey(const Map::Key &, const Map::Key &insert_key, const bool &reverse = true);
 
-            void erase();
-            void erase(const Map::Key &);
+        void erase();
+        void erase(const Map::Key &);
 
-            Data &data();
+        Data &data();
 
-            Map::Key &operator [] (const unsigned int &index);
+        Map::Key &operator[](const unsigned int &index);
 
-            const bool debug;
+        const bool debug;
 
-        private :
-            std::atomic<bool> loop_mode;
-            std::atomic<bool> is_finish;
-            std::atomic<unsigned int> current_index;
+    private:
+        std::atomic<bool> loop_mode;
+        std::atomic<bool> is_finish;
+        std::atomic<unsigned int> current_index;
 
-            unsigned int count_of_skip_ids;
+        unsigned int count_of_skip_ids;
 
-            std::mutex route_mutex;
+        std::mutex route_mutex;
 
-            Data route_indexes;
+        Data route_indexes;
     };
 }
-
