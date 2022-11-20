@@ -46,7 +46,7 @@ bool obstacle_flag = true;
 // SKIP_WAYPOINT
 // skipWaypointする際の秒数指定
 double skip_sec = 0.0;
-double to_skip_sec = 120.0;
+double to_skip_sec = 90.0;
 // skipする速度
 double skip_vel = 0.05;
 // use_skipwaypoint
@@ -432,7 +432,8 @@ namespace waypoint_server
             if (!is_cancel.load())
             {
                 end_time = time(NULL);
-                printf("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
+                // printf("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
+                ROS_INFO("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
                 if ((end_time - start_time >= skip_sec) && (skip_flag))
                 {
                     if ((use_skip) && !(waypoint_map[router.getIndex()].properties["stop"] == "true"))
@@ -484,13 +485,13 @@ namespace waypoint_server
             ROS_INFO("Please call the ~/next_waypoint service");
             StopService();
             start_time = time(NULL);
-            to_skip_sec = time(NULL);
+            start_skip_time = time(NULL);
             return;
         }
         if (waypoint_map[router.getIndex()].properties["standby_mode"] == "true")
         {
             ROS_INFO("Current waypoint properties standby_mode is true");
-            to_skip_sec = time(NULL);
+            start_skip_time = time(NULL);
             if (obstacle_flag)
                 return;
         }
@@ -649,7 +650,8 @@ namespace waypoint_server
             if ((end_skip_time - start_skip_time) >= to_skip_sec)
             {
                 start_time = time(NULL);
-                printf("skip count start!\n");
+                // printf("skip count start!\n");
+                ROS_INFO("skip count start!");
                 start_skip_time = time(NULL);
                 skip_flag = true;
             }
