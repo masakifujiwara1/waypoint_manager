@@ -10,44 +10,54 @@
 
 #include <yaml-cpp/yaml.h>
 
-namespace {
+namespace
+{
     static const std::string ns = "waypoint_server",
                              route_ns = "route",
                              count_of_skip_ids = "count_of_skip_ids",
                              ids = "ids";
 }
 
-namespace waypoint_server {
-    Route::Route(const bool &debug) : debug(debug) {
+namespace waypoint_server
+{
+    Route::Route(const bool &debug) : debug(debug)
+    {
         loop_mode.store(false);
         count_of_skip_ids = 0;
         resetIndex();
     }
 
-    const bool Route::skip(const unsigned int &count_of_ids) {
+    const bool Route::skip(const unsigned int &count_of_ids)
+    {
         count_of_skip_ids = count_of_ids;
 
-        for(unsigned int i = 0; i < count_of_ids; i ++) {
-            if(!forwardIndex()) {
+        for (unsigned int i = 0; i < count_of_ids; i++)
+        {
+            if (!forwardIndex())
+            {
                 return FAILED;
             }
         }
         return SUCCESS;
     }
 
-    void Route::loop(const bool &enable_loop) {
+    void Route::loop(const bool &enable_loop)
+    {
         loop_mode.store(enable_loop);
     }
 
-    void Route::load(const std::string &filename) {
+    void Route::load(const std::string &filename)
+    {
         std::lock_guard<std::mutex> lock(route_mutex);
 
-        if(filename.empty()) {
+        if (filename.empty())
+        {
             throw std::runtime_error("Load failed: empty filename waypoint_server::Route::load()");
         }
         std::ifstream input_file{filename};
 
-        if(!input_file.is_open()) {
+        if (!input_file.is_open())
+        {
             std::cout
                 << "Does not find "
                 << filename
@@ -56,41 +66,47 @@ namespace waypoint_server {
             return;
         }
         YAML::Node yaml,
-                   route_yaml;
+            route_yaml;
 
         yaml = YAML::LoadFile(filename);
         route_yaml = yaml[::ns][::route_ns];
 
         route_indexes.clear();
 
-        for(const auto &id : route_yaml[::ids]) {
+        for (const auto &id : route_yaml[::ids])
+        {
             route_indexes.push_back(id.as<std::string>());
         }
         skip(route_yaml[::count_of_skip_ids].as<unsigned int>());
 
-        if(!debug) {
+        if (!debug)
+        {
             return;
         }
         std::cout << "ids:" << std::endl;
 
-        for(const auto &id : route_indexes) {
+        for (const auto &id : route_indexes)
+        {
             std::cout << "  " << id << std::endl;
         }
     }
 
-    void Route::save(const std::string &filename) {
+    void Route::save(const std::string &filename)
+    {
         std::lock_guard<std::mutex> lock(route_mutex);
 
-        if(filename.empty()) {
+        if (filename.empty())
+        {
             throw std::runtime_error("Save failed: empty filename waypoint_server::Route::save()");
         }
         YAML::Node yaml,
-                   route_yaml;
+            route_yaml;
 
         unsigned int count_of_index = 0;
-        for(const auto &index : route_indexes) {
+        for (const auto &index : route_indexes)
+        {
             route_yaml[::ids][count_of_index] = index;
-            count_of_index ++;
+            count_of_index++;
         }
         route_yaml[::count_of_skip_ids] = count_of_skip_ids;
 
@@ -98,7 +114,8 @@ namespace waypoint_server {
 
         std::ofstream output_file{filename};
 
-        if(!output_file.is_open()) {
+        if (!output_file.is_open())
+        {
             throw std::runtime_error("Failed open " + filename + " waypoint_server::Route::save()");
         }
 
@@ -106,57 +123,83 @@ namespace waypoint_server {
         output_file.close();
     }
 
-    void Route::resetIndex() noexcept {
+    void Route::resetIndex() noexcept
+    {
         is_finish.store(false);
         current_index.store(0);
     }
 
-    const Map::Key &Route::getIndex() {
+    const Map::Key &Route::getIndex()
+    {
         std::lock_guard<std::mutex> lock(route_mutex);
 
-        if(isEmpty()) {
+        if (isEmpty())
+        {
             throw std::runtime_error("Get failed route indexes is zero waypoint_server::Route::getIndex()");
         }
 
         return route_indexes[current_index.load()];
     }
 
-    const unsigned int &Route::getSkipIds() const {
+    const Map::Key &Route::getIndexNext()
+    {
+        std::lock_guard<std::mutex> lock(route_mutex);
+
+        if (isEmpty())
+        {
+            throw std::runtime_error("Get failed route indexes is zero waypoint_server::Route::getIndexNext()");
+        }
+
+        return route_indexes[current_index.load() + 1];
+    }
+
+    const unsigned int &Route::getSkipIds() const
+    {
         return count_of_skip_ids;
     }
 
-    const bool Route::isEmpty() const {
-        if(route_indexes.size() > 0) {
+    const bool Route::isEmpty() const
+    {
+        if (route_indexes.size() > 0)
+        {
             return false;
         }
         return true;
     }
 
-    const bool Route::isFinish() {
+    const bool Route::isFinish()
+    {
         return is_finish.load();
     }
 
-    const bool Route::hasKey(const Map::Key &key) {
+    const bool Route::hasKey(const Map::Key &key)
+    {
         bool has_key = false;
 
-        for(const auto &i : route_indexes) {
-            if(key == i) {
+        for (const auto &i : route_indexes)
+        {
+            if (key == i)
+            {
                 has_key = true;
                 break;
             }
         }
-        if(has_key) {
+        if (has_key)
+        {
             return true;
         }
         return false;
     }
 
-    void Route::append(const Map::Key &key) {
+    void Route::append(const Map::Key &key)
+    {
         route_indexes.push_back(key);
     }
 
-    bool Route::insert(const int &base_posision, const Map::Key &key) {
-        if(route_indexes.size() <= base_posision) {
+    bool Route::insert(const int &base_posision, const Map::Key &key)
+    {
+        if (route_indexes.size() <= base_posision)
+        {
             return FAILED;
         }
         route_indexes.insert(route_indexes.begin() + base_posision, key);
@@ -164,71 +207,86 @@ namespace waypoint_server {
         return SUCCESS;
     }
 
-    bool Route::insertFromKey(const Map::Key &key, const Map::Key &insert_key, const bool &reverse) {
+    bool Route::insertFromKey(const Map::Key &key, const Map::Key &insert_key, const bool &reverse)
+    {
         std::lock_guard<std::mutex> lock(route_mutex);
         bool found_route_index = false;
         int insert_position = 0;
 
-        if(reverse) {
-            for(auto itr = route_indexes.rbegin(); itr != route_indexes.rend(); ++ itr) {
-                if(*itr == key) {
+        if (reverse)
+        {
+            for (auto itr = route_indexes.rbegin(); itr != route_indexes.rend(); ++itr)
+            {
+                if (*itr == key)
+                {
                     found_route_index = true;
                     break;
                 }
-                insert_position ++;
+                insert_position++;
             }
         }
-        else {
-            for(auto itr = route_indexes.begin(); itr != route_indexes.end(); ++ itr) {
-                if(*itr == key) {
+        else
+        {
+            for (auto itr = route_indexes.begin(); itr != route_indexes.end(); ++itr)
+            {
+                if (*itr == key)
+                {
                     found_route_index = true;
                     break;
                 }
-                insert_position ++;
+                insert_position++;
             }
         }
-        if(!found_route_index) {
+        if (!found_route_index)
+        {
             return FAILED;
         }
-        if(reverse) {
+        if (reverse)
+        {
             route_indexes.insert(route_indexes.begin() + (route_indexes.size() - insert_position), insert_key);
         }
-        else {
+        else
+        {
             route_indexes.insert(route_indexes.begin() + insert_position, insert_key);
         }
         return SUCCESS;
     }
 
-    void Route::erase() {
+    void Route::erase()
+    {
         std::lock_guard<std::mutex> lock(route_mutex);
         route_indexes.clear();
     }
 
-    void Route::erase(const Map::Key &key) {
+    void Route::erase(const Map::Key &key)
+    {
         std::lock_guard<std::mutex> lock(route_mutex);
         unsigned int erase_index = 0;
 
-        for(
+        for (
             auto itr = route_indexes.crbegin();
             itr != route_indexes.crend();
-            ++ itr
-        ) {
-            if(*itr == key) {
+            ++itr)
+        {
+            if (*itr == key)
+            {
                 break;
             }
-            erase_index ++;
+            erase_index++;
         }
-        if(route_indexes.size() > erase_index) {
+        if (route_indexes.size() > erase_index)
+        {
             route_indexes.erase(
-                route_indexes.begin()
-                + (route_indexes.size() - erase_index - 1)
-            );
+                route_indexes.begin() + (route_indexes.size() - erase_index - 1));
         }
     }
 
-    const bool Route::forwardIndex() {
-        if(route_indexes.size() - 1 <= current_index.load()) {
-            if(loop_mode.load()) {
+    const bool Route::forwardIndex()
+    {
+        if (route_indexes.size() - 1 <= current_index.load())
+        {
+            if (loop_mode.load())
+            {
                 resetIndex();
                 return SUCCESS;
             }
@@ -239,21 +297,30 @@ namespace waypoint_server {
         return SUCCESS;
     }
 
-    Route::Data &Route::data() {
+    const bool Route::backIndex()
+    {
+        current_index.store(current_index.load() - 1);
+        return SUCCESS;
+    }
+
+    Route::Data &Route::data()
+    {
         std::lock_guard<std::mutex> lock(route_mutex);
 
         return route_indexes;
     }
 
-    Map::Key &Route::operator [] (const unsigned int &index) {
+    Map::Key &Route::operator[](const unsigned int &index)
+    {
         std::lock_guard<std::mutex> lock(route_mutex);
 
-        if(debug) {
-            if(route_indexes.size() - 1 <= index) {
+        if (debug)
+        {
+            if (route_indexes.size() - 1 <= index)
+            {
                 throw std::out_of_range("Illigal access waypoint_server::Route::operator[]");
             }
         }
         return route_indexes[index];
     }
 }
-

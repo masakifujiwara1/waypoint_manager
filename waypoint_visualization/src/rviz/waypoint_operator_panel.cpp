@@ -34,15 +34,15 @@ namespace waypoint_visualization
         connect(waypoint_save_button, SIGNAL(clicked()), this, SLOT(callWaypointSave()));
         waypoint_save_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-        resume_waypoint_button = new QPushButton(this);
-        resume_waypoint_button->setText("Resume Waypoint");
-        connect(resume_waypoint_button, SIGNAL(clicked()), this, SLOT(callResumeWaypoint()));
-        resume_waypoint_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+        prev_waypoint_button = new QPushButton(this);
+        prev_waypoint_button->setText("Prev Waypoint");
+        connect(prev_waypoint_button, SIGNAL(clicked()), this, SLOT(callPrevWaypoint()));
+        prev_waypoint_button->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
         hbox_layout2->addWidget(switch_cancel_button);
         hbox_layout->addWidget(next_waypoint_button);
         hbox_layout2->addWidget(waypoint_save_button);
-        hbox_layout->addWidget(resume_waypoint_button);
+        hbox_layout->addWidget(prev_waypoint_button);
 
         box_layout->addLayout(hbox_layout, 0);
         box_layout->addLayout(hbox_layout2, 0);
@@ -51,7 +51,7 @@ namespace waypoint_visualization
         switch_cancel_client = nh.serviceClient<std_srvs::Trigger>("waypoint_manager/waypoint_server/switch_cancel");
         next_waypoint_client = nh.serviceClient<std_srvs::Trigger>("waypoint_manager/waypoint_server/next_waypoint");
         waypoint_save_client = nh.serviceClient<std_srvs::Trigger>("waypoint_manager/waypoint_server/save");
-        resume_waypoint_client = nh.serviceClient<std_srvs::Trigger>("waypoint_manager/waypoint_server/resume_waypoint");
+        prev_waypoint_client = nh.serviceClient<std_srvs::Trigger>("waypoint_manager/waypoint_server/prev_waypoint");
     }
 
     WaypointOperatorPanel::~WaypointOperatorPanel()
@@ -79,11 +79,11 @@ namespace waypoint_visualization
         waypoint_save_client.call(trigger);
     }
 
-    void WaypointOperatorPanel::callResumeWaypoint()
+    void WaypointOperatorPanel::callPrevWaypoint()
     {
-        ROS_INFO("Pushed callResumeWaypoint()");
+        ROS_INFO("Pushed callPrevWaypoint()");
         std_srvs::Trigger trigger;
-        resume_waypoint_client.call(trigger);
+        prev_waypoint_client.call(trigger);
     }
 }
 

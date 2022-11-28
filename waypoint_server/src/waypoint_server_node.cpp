@@ -1,8 +1,11 @@
-
 #include <iostream>
 #include <string>
 #include <functional>
 #include <thread>
+#include <stdio.h>
+#include <time.h>
+
+using namespace std;
 
 #include <Eigen/Dense>
 
@@ -13,13 +16,18 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Float64.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Twist.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/PointStamped.h>
 
+#include <std_srvs/Empty.h>
 #include <std_srvs/Trigger.h>
+#include <std_srvs/SetBool.h>
 #include <topic_tools/MuxSelect.h>
 #include <dynamic_reconfigure/Reconfigure.h>
-// #include "base_local_planner/BaseLocalPlannerConfig.h"
+
+#include <obstacle_detector/Obstacles.h>
+#include <obstacle_detector/CircleObstacle.h>
 
 #include <waypoint_manager_msgs/Waypoint.h>
 #include <waypoint_manager_msgs/WaypointStamped.h>
@@ -27,6 +35,28 @@
 #include <waypoint_manager_msgs/Route.h>
 
 #include <waypoint_server/waypoint_server.h>
+
+#define SIZE_OF_ARRAY(array) (sizeof(array) / sizeof(array[0]))
+
+bool seg_flag = true;
+bool traffic_flag = true;
+bool skip_flag = false;
+bool obstacle_flag = true;
+
+// SKIP_WAYPOINT
+// skipWaypointする際の秒数指定
+double skip_sec = 0.0;
+double to_skip_sec = 90.0;
+// skipするためのカウントを行う上限速度
+double skip_vel = 0.05;
+// use_skipwaypoint
+bool use_skip = false;
+// radius for skip
+double SKIP_RADIUS = 0.5;
+
+time_t start_time, end_time;
+time_t start_skip_time, end_skip_time;
+double goal_X, goal_Y;
 
 namespace waypoint_server
 {
@@ -69,6 +99,7 @@ namespace waypoint_server
 
     class Node
     {
+
     public:
         Node();
 
@@ -89,7 +120,9 @@ namespace waypoint_server
             update_goal_subscriber,
             append_route_subscriber,
             erase_route_subscriber,
-            insert_route_subscriber;
+            insert_route_subscriber,
+            cmd_vel_subscriber,
+            obstacle_pos_subscriber;
 
         ros::ServiceServer save_service,
             save_waypoints_service,
@@ -97,10 +130,15 @@ namespace waypoint_server
             reset_route_service,
             switch_cancel_service,
             next_waypoint_service,
+            prev_waypoint_service,
             resume_waypoint_service;
 
         ros::ServiceClient white_line_service,
-            detect_start_service;
+            detect_start_service,
+            switch_segmentation_service,
+            stop_service,
+            traffic_service,
+            clear_costmap_service;
         // config_service;
 
         NodeParameters param;
@@ -119,7 +157,9 @@ namespace waypoint_server
             updateGoalPose(const waypoint_manager_msgs::WaypointStamped::ConstPtr &),
             appendRoute(const std_msgs::String::ConstPtr &),
             eraseRoute(const std_msgs::String::ConstPtr &),
-            insertRoute(const std_msgs::String::ConstPtr &);
+            insertRoute(const std_msgs::String::ConstPtr &),
+            cmd_vel_(const geometry_msgs::Twist::ConstPtr &),
+            obstacle_pos(const obstacle_detector::Obstacles::ConstPtr &);
 
         bool save(
             std_srvs::TriggerRequest &request,
@@ -139,11 +179,19 @@ namespace waypoint_server
         bool nextWaypoint(
             std_srvs::TriggerRequest &request,
             std_srvs::TriggerResponse &response);
+        bool prevWaypoint(
+            std_srvs::TriggerRequest &request,
+            std_srvs::TriggerResponse &response);
         bool resumeWaypoint(
             std_srvs::TriggerRequest &request,
             std_srvs::TriggerResponse &response);
         void Muxselect();
         void detectstart();
+        void switch_segmentation();
+        void TrafficSignService();
+        void StopService();
+        void ClearCostmapService();
+        void skipWaypoint();
 
         void publishGoal(),
             publishWaypoints(),
@@ -308,6 +356,16 @@ namespace waypoint_server
             param.subscribe_queue_size,
             &Node::insertRoute,
             this);
+        cmd_vel_subscriber = nh.subscribe<geometry_msgs::Twist>(
+            "/cmd_vel",
+            10,
+            &Node::cmd_vel_,
+            this);
+        obstacle_pos_subscriber = nh.subscribe<obstacle_detector::Obstacles>(
+            "/obstacles",
+            10,
+            &Node::obstacle_pos,
+            this);
 
         save_service = private_nh.advertiseService(
             "save",
@@ -333,6 +391,10 @@ namespace waypoint_server
             "next_waypoint",
             &Node::nextWaypoint,
             this);
+        prev_waypoint_service = private_nh.advertiseService(
+            "prev_waypoint",
+            &Node::prevWaypoint,
+            this);
         resume_waypoint_service = private_nh.advertiseService(
             "resume_waypoint",
             &Node::resumeWaypoint,
@@ -341,8 +403,11 @@ namespace waypoint_server
             "/mux/select");
         detect_start_service = private_nh.serviceClient<std_srvs::Trigger>(
             "/start_detect");
-        // config_service = private_nh.serviceClient<dynamic_reconfigure::Reconfigure>(
-        //     "/move_base/TrajectoryPlannerROS/set_parameters");
+        switch_segmentation_service = private_nh.serviceClient<std_srvs::SetBool>(
+            "/switch_segmentation");
+        stop_service = private_nh.serviceClient<std_srvs::SetBool>("/stop_service");
+        traffic_service = private_nh.serviceClient<std_srvs::SetBool>("/traffic_service");
+        clear_costmap_service = private_nh.serviceClient<std_srvs::Empty>("/move_base/clear_costmaps");
 
         is_cancel.store(true);
         regist_goal_id.store(0);
@@ -374,6 +439,28 @@ namespace waypoint_server
         while (ros::ok())
         {
             publishGoal();
+            if (use_skip)
+            {
+                if (!is_cancel.load())
+                {
+                    end_time = time(NULL);
+                    ROS_INFO("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
+                    if ((end_time - start_time >= skip_sec) && (skip_flag))
+                    {
+                        if (!(waypoint_map[router.getIndex()].properties["stop"] == "true"))
+                            skipWaypoint();
+                        start_time = time(NULL);
+                        start_skip_time = time(NULL);
+                        skip_flag = false;
+                    }
+                }
+                else
+                {
+                    start_time = time(NULL);
+                    start_skip_time = time(NULL);
+                    printf("wait!\n");
+                }
+            }
             rate.sleep();
         }
         ros::shutdown();
@@ -402,13 +489,51 @@ namespace waypoint_server
         {
             ROS_INFO("Current waypoint properties stop is true");
             ROS_INFO("Please call the ~/next_waypoint service");
+            StopService();
+            start_time = time(NULL);
+            start_skip_time = time(NULL);
             return;
+        }
+        if (waypoint_map[router.getIndex()].properties["standby_mode"] == "true")
+        {
+            ROS_INFO("Current waypoint properties standby_mode is true");
+            start_skip_time = time(NULL);
+            if (obstacle_flag)
+                return;
         }
         if (waypoint_map[router.getIndex()].properties["white"] == "true")
         {
             ROS_INFO("Current waypoint properties white is true");
             ROS_INFO("Please call the ~/resume_waypoint service");
             detectstart();
+        }
+        if (waypoint_map[router.getIndex()].properties["traffic_sign_ON"] == "true")
+        {
+            ROS_INFO("Current waypoint properties traffic_sign_ON is true");
+            // ROS_INFO("Please call the ~/resume_waypoint service");
+            traffic_flag = true;
+            TrafficSignService();
+        }
+        if (waypoint_map[router.getIndex()].properties["traffic_sign_OFF"] == "true")
+        {
+            ROS_INFO("Current waypoint properties traffic_sign_OFF is true");
+            // ROS_INFO("Please call the ~/resume_waypoint service");
+            traffic_flag = false;
+            TrafficSignService();
+        }
+        if (waypoint_map[router.getIndex()].properties["switch_segmentation_ON"] == "true")
+        {
+            ROS_INFO("Current waypoint properties switch_segmentation_ON is true");
+            // ROS_INFO("Please call the ~/resume_waypoint service");
+            seg_flag = true;
+            switch_segmentation();
+        }
+        if (waypoint_map[router.getIndex()].properties["switch_segmentation_OFF"] == "true")
+        {
+            ROS_INFO("Current waypoint properties switch_segmentation_OFF is true");
+            // ROS_INFO("Please call the ~/resume_waypoint service");
+            seg_flag = false;
+            switch_segmentation();
         }
         if (!router.forwardIndex())
         {
@@ -418,6 +543,7 @@ namespace waypoint_server
         else
         {
             publishGoal();
+            // start_time = time(NULL);
         }
     }
 
@@ -520,6 +646,69 @@ namespace waypoint_server
         publishLatchedData();
     }
 
+    void Node::cmd_vel_(const geometry_msgs::Twist::ConstPtr &msg)
+    {
+        float vel_x;
+        vel_x = msg->linear.x;
+        if (use_skip)
+        {
+            end_skip_time = time(NULL);
+            if (vel_x <= skip_vel)
+            {
+                if ((end_skip_time - start_skip_time) >= to_skip_sec)
+                {
+                    start_time = time(NULL);
+                    // printf("skip count start!\n");
+                    ROS_INFO("skip count start!");
+                    start_skip_time = time(NULL);
+                    skip_flag = true;
+                }
+            }
+            else
+            {
+                start_skip_time = time(NULL);
+            }
+        }
+    }
+
+    void Node::obstacle_pos(const obstacle_detector::Obstacles::ConstPtr &msg)
+    {
+        int count = 0;
+        Eigen::Vector2f distance_of_goal;
+        double x, y;
+        obstacle_detector::Obstacles obstacle;
+        obstacle.circles = msg->circles;
+
+        // std::cout << obstacle.circles.size() << std::endl;
+
+        for (int i = 0; i < obstacle.circles.size(); i++)
+        {
+            x = obstacle.circles[i].center.x;
+            y = obstacle.circles[i].center.y;
+
+            //  judge
+            distance_of_goal.x() = goal_X - x;
+            distance_of_goal.y() = goal_Y - y;
+            if (distance_of_goal.lpNorm<2>() < SKIP_RADIUS)
+            {
+                // ROS_INFO("obstacle_detect!!!");
+                obstacle_flag = true;
+                break;
+                // count++;
+            }
+            else
+            // {
+            //     count++;
+            // }
+            // if (count >= obstacle.circles.size() - 1)
+            {
+                obstacle_flag = false;
+                // printf("obstacle_flag false");
+            }
+        }
+        count = 0;
+    }
+
     void Node::insertRoute(const std_msgs::String::ConstPtr &msg)
     {
         if (!waypoint_map.hasKey(msg->data))
@@ -595,6 +784,8 @@ namespace waypoint_server
     {
         ROS_INFO("Called switchCancel()");
         exchangeCancelState();
+        // start_clock = clock();
+        start_time = time(NULL);
         return true;
     }
 
@@ -610,7 +801,51 @@ namespace waypoint_server
         }
         publishGoal();
 
+        // fall stop flag
+        std_srvs::SetBool data;
+        data.request.data = false;
+        stop_service.call(data);
+
+        ClearCostmapService();
+
+        // start_time = time(NULL);
+
         return true;
+    }
+
+    bool Node::prevWaypoint(
+        std_srvs::TriggerRequest &request,
+        std_srvs::TriggerResponse &response)
+    {
+        ROS_INFO("Called prevWaypoint()");
+
+        if (!router.backIndex())
+        {
+            ROS_WARN("Failed back index for route");
+        }
+        publishGoal();
+
+        return true;
+    }
+
+    void Node::skipWaypoint()
+    {
+        ROS_INFO("Called skipWaypoint()");
+
+        if (!router.forwardIndex())
+        {
+            ROS_WARN("Failed forward index for route");
+        }
+
+        // start_time = time(NULL);
+
+        publishGoal();
+
+        std_srvs::SetBool data;
+        data.request.data = false;
+        stop_service.call(data);
+
+        ClearCostmapService();
     }
 
     bool Node::resumeWaypoint(
@@ -621,6 +856,38 @@ namespace waypoint_server
         Muxselect();
 
         return true;
+    }
+
+    void Node::ClearCostmapService()
+    {
+        ROS_INFO("Called clear_costmap_service()");
+        std_srvs::Empty data;
+        clear_costmap_service.call(data);
+    }
+
+    void Node::StopService()
+    {
+        ROS_INFO("Called stop_service()");
+        std_srvs::SetBool data;
+        data.request.data = true;
+        stop_service.call(data);
+    }
+
+    void Node::TrafficSignService()
+    {
+        ROS_INFO("Called traffic_service()");
+
+        std_srvs::SetBool data;
+        if (traffic_flag)
+        {
+            data.request.data = true;
+            traffic_service.call(data);
+        }
+        else
+        {
+            data.request.data = false;
+            traffic_service.call(data);
+        }
     }
 
     void Node::Muxselect()
@@ -641,6 +908,23 @@ namespace waypoint_server
         detect_start_service.call(trig);
     }
 
+    void Node::switch_segmentation()
+    {
+        ROS_INFO("Called switch_segmentation()");
+
+        std_srvs::SetBool data;
+        if (seg_flag)
+        {
+            data.request.data = true;
+            switch_segmentation_service.call(data);
+        }
+        else
+        {
+            data.request.data = false;
+            switch_segmentation_service.call(data);
+        }
+    }
+
     void Node::publishGoal()
     {
         if (is_cancel.load())
@@ -654,6 +938,8 @@ namespace waypoint_server
         const auto pose_vector = waypoint_map[router.getIndex()].goal;
         const auto orientation = waypoint_map[router.getIndex()].quaternion;
 
+        const auto pose_vector_next = waypoint_map[router.getIndexNext()].goal;
+
         waypoint_manager_msgs::Waypoint waypoint;
 
         waypoint.identity = router.getIndex();
@@ -664,6 +950,9 @@ namespace waypoint_server
         waypoint.pose.orientation.y = orientation.y();
         waypoint.pose.orientation.z = orientation.z();
         waypoint.pose.orientation.w = orientation.w();
+
+        goal_X = pose_vector_next.x();
+        goal_Y = pose_vector_next.y();
 
         for (const auto &[name, value] : waypoint_map[router.getIndex()].properties)
         {
