@@ -47,10 +47,12 @@ bool obstacle_flag = true;
 // skipWaypointする際の秒数指定
 double skip_sec = 0.0;
 double to_skip_sec = 90.0;
-// skipする速度
+// skipするためのカウントを行う上限速度
 double skip_vel = 0.05;
 // use_skipwaypoint
-bool use_skip = true;
+bool use_skip = false;
+// radius for skip
+double SKIP_RADIUS = 0.5;
 
 time_t start_time, end_time;
 time_t start_skip_time, end_skip_time;
@@ -128,6 +130,7 @@ namespace waypoint_server
             reset_route_service,
             switch_cancel_service,
             next_waypoint_service,
+            prev_waypoint_service,
             resume_waypoint_service;
 
         ros::ServiceClient white_line_service,
@@ -174,6 +177,9 @@ namespace waypoint_server
             std_srvs::TriggerRequest &request,
             std_srvs::TriggerResponse &response);
         bool nextWaypoint(
+            std_srvs::TriggerRequest &request,
+            std_srvs::TriggerResponse &response);
+        bool prevWaypoint(
             std_srvs::TriggerRequest &request,
             std_srvs::TriggerResponse &response);
         bool resumeWaypoint(
@@ -385,6 +391,10 @@ namespace waypoint_server
             "next_waypoint",
             &Node::nextWaypoint,
             this);
+        prev_waypoint_service = private_nh.advertiseService(
+            "prev_waypoint",
+            &Node::prevWaypoint,
+            this);
         resume_waypoint_service = private_nh.advertiseService(
             "resume_waypoint",
             &Node::resumeWaypoint,
@@ -429,29 +439,28 @@ namespace waypoint_server
         while (ros::ok())
         {
             publishGoal();
-            if (!is_cancel.load())
+            if (use_skip)
             {
-                end_time = time(NULL);
-                // printf("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
-                ROS_INFO("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
-                if ((end_time - start_time >= skip_sec) && (skip_flag))
+                if (!is_cancel.load())
                 {
-                    if ((use_skip) && !(waypoint_map[router.getIndex()].properties["stop"] == "true"))
-                        skipWaypoint();
+                    end_time = time(NULL);
+                    ROS_INFO("time:%ld, to_skip time:%ld\n", end_time - start_time, end_skip_time - start_skip_time);
+                    if ((end_time - start_time >= skip_sec) && (skip_flag))
+                    {
+                        if (!(waypoint_map[router.getIndex()].properties["stop"] == "true"))
+                            skipWaypoint();
+                        start_time = time(NULL);
+                        start_skip_time = time(NULL);
+                        skip_flag = false;
+                    }
+                }
+                else
+                {
                     start_time = time(NULL);
                     start_skip_time = time(NULL);
-                    skip_flag = false;
+                    printf("wait!\n");
                 }
             }
-            else
-            {
-                start_time = time(NULL);
-                start_skip_time = time(NULL);
-                printf("wait!\n");
-            }
-
-            // printf("waypoint_info:%s\n", waypoint_map[router.getIndex()].properties["stop"].c_str());
-
             rate.sleep();
         }
         ros::shutdown();
@@ -467,9 +476,6 @@ namespace waypoint_server
         }
         if (is_cancel.load())
         {
-            // start_time = time(NULL);
-            // start_skip_time = time(NULL);
-            // printf("cancel");
             return;
         }
         if (!msg->data)
@@ -644,24 +650,25 @@ namespace waypoint_server
     {
         float vel_x;
         vel_x = msg->linear.x;
-        end_skip_time = time(NULL);
-        if (vel_x <= skip_vel)
+        if (use_skip)
         {
-            if ((end_skip_time - start_skip_time) >= to_skip_sec)
+            end_skip_time = time(NULL);
+            if (vel_x <= skip_vel)
             {
-                start_time = time(NULL);
-                // printf("skip count start!\n");
-                ROS_INFO("skip count start!");
+                if ((end_skip_time - start_skip_time) >= to_skip_sec)
+                {
+                    start_time = time(NULL);
+                    // printf("skip count start!\n");
+                    ROS_INFO("skip count start!");
+                    start_skip_time = time(NULL);
+                    skip_flag = true;
+                }
+            }
+            else
+            {
                 start_skip_time = time(NULL);
-                skip_flag = true;
             }
         }
-        else
-        {
-            start_skip_time = time(NULL);
-            // start_time = time(NULL);
-        }
-        // printf("%lf\n", vel_x);
     }
 
     void Node::obstacle_pos(const obstacle_detector::Obstacles::ConstPtr &msg)
@@ -682,7 +689,7 @@ namespace waypoint_server
             //  judge
             distance_of_goal.x() = goal_X - x;
             distance_of_goal.y() = goal_Y - y;
-            if (distance_of_goal.lpNorm<2>() < 0.3)
+            if (distance_of_goal.lpNorm<2>() < SKIP_RADIUS)
             {
                 // ROS_INFO("obstacle_detect!!!");
                 obstacle_flag = true;
@@ -806,6 +813,21 @@ namespace waypoint_server
         return true;
     }
 
+    bool Node::prevWaypoint(
+        std_srvs::TriggerRequest &request,
+        std_srvs::TriggerResponse &response)
+    {
+        ROS_INFO("Called prevWaypoint()");
+
+        if (!router.backIndex())
+        {
+            ROS_WARN("Failed back index for route");
+        }
+        publishGoal();
+
+        return true;
+    }
+
     void Node::skipWaypoint()
     {
         ROS_INFO("Called skipWaypoint()");
@@ -850,14 +872,6 @@ namespace waypoint_server
         data.request.data = true;
         stop_service.call(data);
     }
-
-    // void Node::TrafficSignService()
-    // {
-    //     ROS_INFO("Called traffic_service()");
-    //     std_srvs::SetBool data;
-    //     data.request.data = true;
-    //     traffic_service.call(data);
-    // }
 
     void Node::TrafficSignService()
     {
