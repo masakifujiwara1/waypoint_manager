@@ -8,6 +8,7 @@ global_frame: map
 goal_publish_frequency: 0.5
 goal_check_frequency: 1.0
 default_goal_radius: 1.0
+set_goal_radius: 1.0
 waypoints_file: $(find waypoint_server)/config/waypoints/test.yaml
 route_file: $(find waypoint_server)/config/routes/test.yaml
 enable_loop: true
