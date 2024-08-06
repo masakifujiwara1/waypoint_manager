@@ -553,6 +553,7 @@ namespace waypoint_server {
         }
         const auto name = generateKey(regist_goal_id, param.regist_waypoint_prefix);
         waypoint_map[name].goal = waypoint_map[msg->data].goal;
+        waypoint_map[name].goal.x() += 1.0;
         waypoint_map.setQuaternion(name);
 
         if(router.insertFromKey(msg->data, name, true)) {
