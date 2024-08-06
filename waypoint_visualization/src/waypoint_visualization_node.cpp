@@ -25,7 +25,8 @@ struct Parameters {
     int publish_queue_size,
         subscribe_queue_size;
 
-    float default_goal_radius;
+    float default_goal_radius,
+         set_goal_radius;
 
     std::string pose_array_topic,
                 update_waypoint_topic,
@@ -75,6 +76,7 @@ class Node {
         void deleteRouteFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
         void insertRouteFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
         void switchStopPointFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
+        void SetGoalRadiusFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &);
 };
 
 Node::Node() : nh(), private_nh("~"), interactive_server("waypoint_visualization_node") {
@@ -147,6 +149,11 @@ Node::Node() : nh(), private_nh("~"), interactive_server("waypoint_visualization
         "route_path_topic",
         param.route_path_topic,
         std::string("route/path")
+    );
+    private_nh.param(
+        "set_goal_radius",
+        param.set_goal_radius,
+        static_cast<float>(1)
     );
 
     pose_array_publisher
@@ -250,6 +257,15 @@ Node::Node() : nh(), private_nh("~"), interactive_server("waypoint_visualization
         )
     );
     menu_handler.setCheckState(stop_point_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+
+    auto set_goal_radius_menu_id = menu_handler.insert(
+        properties_menu_id,
+        "Set goal radius",
+        std::bind(
+            &Node::SetGoalRadiusFeedback,
+            this,
+            std::placeholders::_1));
+    menu_handler.setCheckState(set_goal_radius_menu_id, interactive_markers::MenuHandler::UNCHECKED);
 }
 
 void Node::spin() {
@@ -568,6 +584,49 @@ void Node::switchStopPointFeedback(const visualization_msgs::InteractiveMarkerFe
         msg.waypoint.properties.back().data = "true";
     }
     else {
+        menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+    }
+    msg.waypoint.pose = feedback->pose;
+    msg.waypoint.identity = feedback->marker_name;
+    msg.header.frame_id = feedback->header.frame_id;
+    msg.header.stamp = ros::Time::now();
+    update_waypoint_publisher.publish(msg);
+
+    menu_handler.reApply(interactive_server);
+    interactive_server.applyChanges();
+}
+
+void Node::SetGoalRadiusFeedback(const visualization_msgs::InteractiveMarkerFeedbackConstPtr &feedback)
+{
+    ROS_INFO("Called SetGoalRadiusFeedback %s", feedback->marker_name.c_str());
+
+    private_nh.param("set_goal_radius", param.set_goal_radius, static_cast<float>(1));
+
+    interactive_markers::MenuHandler::EntryHandle entry_menu_id = feedback->menu_entry_id;
+    interactive_markers::MenuHandler::CheckState menu_check_state;
+    waypoint_manager_msgs::WaypointStamped msg;
+
+    menu_handler.getCheckState(entry_menu_id, menu_check_state);
+
+    if (menu_check_state == interactive_markers::MenuHandler::CHECKED)
+    {
+        menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::UNCHECKED);
+
+        msg.waypoint.properties.push_back(waypoint_manager_msgs::Property());
+        msg.waypoint.properties.back().name = "goal_radius";
+        msg.waypoint.properties.back().data = "1.0";
+    }
+    else if (menu_check_state == interactive_markers::MenuHandler::UNCHECKED)
+    {
+        menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::CHECKED);
+
+        msg.waypoint.properties.push_back(waypoint_manager_msgs::Property());
+        msg.waypoint.properties.back().name = "goal_radius";
+        ROS_INFO("Called SetGoalRadiusFeedback %f", param.set_goal_radius);
+        msg.waypoint.properties.back().data = std::to_string(param.set_goal_radius);
+    }
+    else
+    {
         menu_handler.setCheckState(entry_menu_id, interactive_markers::MenuHandler::UNCHECKED);
     }
     msg.waypoint.pose = feedback->pose;

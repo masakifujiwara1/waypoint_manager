@@ -3,7 +3,9 @@
 
 #include <QWidget>
 #include <QHBoxLayout>
+#include <QVBoxLayout>
 #include <QPushButton>
+#include <QLineEdit>
 
 #include <ros/ros.h>
 #include <rviz/panel.h>
@@ -23,17 +25,21 @@ namespace waypoint_visualization
         void callNextWaypoint();
         void callWaypointSave();
         void callPrevWaypoint();
+        void callSetGoalRadius();
+        float getWaypointNumber();
 
     protected:
-        QVBoxLayout *hbox_layout,
-            *hbox_layout2;
-
-        QBoxLayout *box_layout;
+        QVBoxLayout *main_layout;
+        QHBoxLayout *button_layout1,
+            *button_layout2;
 
         QPushButton *switch_cancel_button,
             *next_waypoint_button,
             *waypoint_save_button,
-            *prev_waypoint_button;
+            *prev_waypoint_button,
+            *set_goal_radius_button;
+
+        QLineEdit *waypoint_number_input;
 
         ros::NodeHandle nh,
             private_nh;
