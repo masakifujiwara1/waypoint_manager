@@ -26,6 +26,7 @@ namespace waypoint_server {
 
             void resetIndex() noexcept;
             const bool forwardIndex();
+            const bool backIndex();
             const Map::Key &getIndex();
 
             const unsigned int &getSkipIds() const;

@@ -88,7 +88,8 @@ namespace waypoint_server {
                                save_route_service,
                                reset_route_service,
                                switch_cancel_service,
-                               next_waypoint_service;
+                               next_waypoint_service,
+                               prev_waypoint_service;
 
             NodeParameters param;
 
@@ -129,6 +130,10 @@ namespace waypoint_server {
                 std_srvs::TriggerResponse &response
             );
             bool nextWaypoint(
+                std_srvs::TriggerRequest &request,
+                std_srvs::TriggerResponse &response
+            );
+            bool prevWaypoint(
                 std_srvs::TriggerRequest &request,
                 std_srvs::TriggerResponse &response
             );
@@ -379,6 +384,12 @@ namespace waypoint_server {
                 &Node::nextWaypoint,
                 this
               );
+        prev_waypoint_service 
+            = private_nh.advertiseService(
+                "prev_waypoint",
+                &Node::prevWaypoint,
+                this
+            );
 
         is_cancel.store(true);
         regist_goal_id.store(0);
@@ -616,6 +627,21 @@ namespace waypoint_server {
 
         if(!router.forwardIndex()) {
             ROS_WARN("Failed forward index for route");
+        }
+        publishGoal();
+
+        return true;
+    }
+
+    bool Node::prevWaypoint(
+        std_srvs::TriggerRequest &request,
+        std_srvs::TriggerResponse &response)
+    {
+        ROS_INFO("Called prevWaypoint()");
+
+        if (!router.backIndex())
+        {
+            ROS_WARN("Failed back index for route");
         }
         publishGoal();
 

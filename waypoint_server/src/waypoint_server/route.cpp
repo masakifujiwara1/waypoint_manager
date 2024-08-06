@@ -239,6 +239,11 @@ namespace waypoint_server {
         return SUCCESS;
     }
 
+    const bool Route::backIndex() {
+        current_index.store(current_index.load() - 1);
+        return SUCCESS;
+    }
+
     Route::Data &Route::data() {
         std::lock_guard<std::mutex> lock(route_mutex);
 
