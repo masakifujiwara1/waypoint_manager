@@ -15,6 +15,7 @@
 #include <geometry_msgs/PointStamped.h>
 
 #include <std_srvs/Trigger.h>
+#include <std_srvs/Empty.h>
 
 #include <waypoint_manager_msgs/Waypoint.h>
 #include <waypoint_manager_msgs/WaypointStamped.h>
@@ -36,7 +37,8 @@ namespace waypoint_server {
                     append_route_topic,
                     erase_route_topic,
                     insert_route_topic,
-                    waypoints_topic;
+                    waypoints_topic,
+                    clear_costmap_srv;
 
         std::string regist_waypoint_prefix;
 
@@ -90,6 +92,8 @@ namespace waypoint_server {
                                switch_cancel_service,
                                next_waypoint_service,
                                prev_waypoint_service;
+
+            ros::ServiceClient clear_costmap_service;
 
             NodeParameters param;
 
@@ -271,6 +275,12 @@ namespace waypoint_server {
             param.goal_publish_frequency,
             0.5
         );
+        private_nh.param(
+            "clear_costmap_srv",
+            param.clear_costmap_srv,
+            std::string("move_base/clear_costmaps")
+        );  
+
 
         waypoint_publisher
             = nh.advertise<waypoint_manager_msgs::Waypoint>(
@@ -390,6 +400,8 @@ namespace waypoint_server {
                 &Node::prevWaypoint,
                 this
             );
+
+        clear_costmap_service = private_nh.serviceClient<std_srvs::Empty>(param.clear_costmap_srv);
 
         is_cancel.store(true);
         regist_goal_id.store(0);
@@ -630,6 +642,12 @@ namespace waypoint_server {
             ROS_WARN("Failed forward index for route");
         }
         publishGoal();
+
+        ROS_WARN("Call ClearCostmaps");
+        ROS_WARN("%s", param.clear_costmap_srv.c_str());
+        
+        std_srvs::Empty data;
+        clear_costmap_service.call(data);
 
         return true;
     }
