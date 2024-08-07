@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
   goal_event_handler
   waypoint_manager_msgs
   waypoint_server
+  check_robot_moving
 )
 
 ## System dependencies are found with CMake's conventions
