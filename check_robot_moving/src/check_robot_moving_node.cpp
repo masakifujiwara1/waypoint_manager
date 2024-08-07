@@ -181,7 +181,7 @@ auto main(int argc, char **argv) -> int {
     private_nh.param(
         "clear_costmap_srv",
         clear_costmap_srv,
-        std::string("move_base/clear_costmap")
+        std::string("move_base/clear_costmaps")
     );
 
     auto loop_rate = ros::Rate(5);
