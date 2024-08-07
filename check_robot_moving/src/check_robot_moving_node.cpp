@@ -181,7 +181,7 @@ auto main(int argc, char **argv) -> int {
     private_nh.param(
         "clear_costmap_srv",
         clear_costmap_srv,
-        std::string("move_base/clear_costmap")
+        std::string("move_base/clear_costmaps")
     );
 
     auto loop_rate = ros::Rate(5);
@@ -242,7 +242,7 @@ auto main(int argc, char **argv) -> int {
             last_moving_time = time(NULL);
         }
 
-        ROS_INFO("delta_pose_dist:%lf\n", delta_pose_dist);
+        // ROS_INFO("delta_pose_dist:%lf\n", delta_pose_dist);
         // ROS_INFO("cmd_vel:%lf\n", vel_x);
         // ROS_INFO("is_reached_goal:%d\n", is_reached_goal.load());
         ROS_INFO("time:%ld, stopped time:%ld\n", time(NULL) - start_time, time(NULL) - last_moving_time);

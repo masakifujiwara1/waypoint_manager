@@ -8,6 +8,7 @@
     <node pkg="waypoint_server" type="waypoint_server_node" name="waypoint_server" output="$(arg output)">
       <rosparam command="load" file="$(arg config_file)" subst_value="true"/>
       <remap from="waypoint/regist_point" to="$(arg regist_goal_topic)"/>
+      <param name="clear_costmap_srv" value="/move_base/clear_costmaps" />
     </node>
     <node pkg="waypoint_server" type="waypoint_to_posestamped_node" name="waypoint_to_posestamped" output="$(arg output)">
       <rosparam command="load" file="$(arg config_file)" subst_value="true"/>
