@@ -54,11 +54,13 @@
   <build_depend>waypoint_server</build_depend>
   <build_export_depend>goal_event_handler</build_export_depend>
   <build_export_depend>check_robot_moving</build_export_depend>
+  <build_export_depend>waypoint_reconfigure</build_export_depend>
   <build_export_depend>waypoint_manager_msgs</build_export_depend>
   <build_export_depend>waypoint_server</build_export_depend>
   <build_export_depend>waypoint_visualization</build_export_depend>
   <exec_depend>goal_event_handler</exec_depend>
   <exec_depend>check_robot_moving</exec_depend>
+  <exec_depend>waypoint_reconfigure</exec_depend>
   <exec_depend>waypoint_manager_msgs</exec_depend>
   <exec_depend>waypoint_server</exec_depend>
   <exec_depend>waypoint_visualization</exec_depend>
