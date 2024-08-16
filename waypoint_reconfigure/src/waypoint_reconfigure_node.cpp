@@ -36,11 +36,15 @@ namespace {
     static float default_goal_radius = 1;
     static float current_goal_radius = default_goal_radius;
     static Eigen::Vector2f current_position = Eigen::Vector2f::Zero();
-    static std::string old_id, file_path_, start_id, end_id;
-    static std::string default_global_inflation, default_local_inflation, default_dwa_limit_vel;
+    static std::string old_id, file_path_, start_id, end_id, area_name;
+    static float default_global_inflation, default_local_inflation, default_dwa_limit_vel;
     static YAML::Node yaml_config;
     static float global_inflation, local_inflation, dwa_limit_vel;
 }
+
+void change_global_inflation_param(const std::string& param_name, double value);
+void change_local_inflation_param(const std::string& param_name, double value);
+void change_dwa_param(const std::string& param_name, double value);
 
 void waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &msg) {
     try {
@@ -53,29 +57,59 @@ void waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &msg) {
 
         // check switch waypoint
         if (msg->identity != old_id) {
-            // ここでyamlに登録されたstart_idがないか検索
+            // 現在のwpと合致するエリアのスタートwpを全探索
             for (const auto &wp : yaml_config["waypoint_reconfigure_config"]["areas"]) {
+                area_name = wp["name"].as<std::string>();
                 start_id = wp["start_id"].as<std::string>();
-                if (msg->identity == start_id) {
-                    ROS_WARN("Switch %s", start_id.c_str());
+                end_id = wp["end_id"].as<std::string>();
 
-                    // ここでendか判別しておく-> flag切る
+                // エリア終了判定
+                if (msg->identity == end_id && is_reconfigure) {
+                    ROS_WARN("This %s area is now complete", area_name.c_str());
 
-                    end_id = wp["end_id"].as<std::string>();
+                    // reconfig with default param
+                    for (const auto &p : wp["properties"]) {
+                        if (p["key"].as<std::string>() == "global_inflation") {
+                            change_global_inflation_param("inflation_radius", default_global_inflation);
+                        }
 
-                    // param
+                        if (p["key"].as<std::string>() == "local_inflation") {
+                            change_local_inflation_param("inflation_radius", default_local_inflation);
+                        }
+
+                        if (p["key"].as<std::string>() == "dwa_limit_vel") {
+                            change_dwa_param("max_vel_x", default_dwa_limit_vel);
+                            change_dwa_param("max_vel_trans", default_dwa_limit_vel);
+                        }
+                    }
+                    is_reconfigure.store(false);
+                }
+
+                // エリア開始判定
+                if (msg->identity == start_id && !is_reconfigure) {
+                    is_reconfigure.store(true);
+                    // ROS_WARN("Switch %s", start_id.c_str());
+                    ROS_WARN("This area is %s", area_name.c_str());
+
+                    // reconfig
                     for (const auto &p : wp["properties"]) {
                         if (p["key"].as<std::string>() == "global_inflation") {
                             global_inflation = p["value"].as<float>();
                             ROS_WARN("Set global_inflation %f", global_inflation);
+                            change_global_inflation_param("inflation_radius", global_inflation);
                         }
+
                         if (p["key"].as<std::string>() == "local_inflation") {
                             local_inflation = p["value"].as<float>();
                             ROS_WARN("Set local_inflation %f", local_inflation);
+                            change_local_inflation_param("inflation_radius", local_inflation);
                         }
+
                         if (p["key"].as<std::string>() == "dwa_limit_vel") {
                             dwa_limit_vel = p["value"].as<float>();
                             ROS_WARN("Set dwa_limit_vel %f", dwa_limit_vel);
+                            change_dwa_param("max_vel_x", dwa_limit_vel);
+                            change_dwa_param("max_vel_trans", dwa_limit_vel);
                         }
                     }
                 }
@@ -110,7 +144,7 @@ void readYaml(ros::NodeHandle& private_nh) {
     }
 }
 
-void change_inflation_param(ros::NodeHandle& nh, const std::string& param_name, double value) {
+void change_global_inflation_param(const std::string& param_name, double value) {
     dynamic_reconfigure::ReconfigureRequest srv_req;
     dynamic_reconfigure::ReconfigureResponse srv_resp;
     dynamic_reconfigure::DoubleParameter double_param;
@@ -123,10 +157,24 @@ void change_inflation_param(ros::NodeHandle& nh, const std::string& param_name, 
     srv_req.config = config;
 
     ros::service::call("/move_base/global_costmap/inflation_layer/set_parameters", srv_req, srv_resp);
+}
+
+void change_local_inflation_param(const std::string& param_name, double value) {
+    dynamic_reconfigure::ReconfigureRequest srv_req;
+    dynamic_reconfigure::ReconfigureResponse srv_resp;
+    dynamic_reconfigure::DoubleParameter double_param;
+    dynamic_reconfigure::Config config;
+
+    double_param.name = param_name;
+    double_param.value = value;
+    config.doubles.push_back(double_param);
+
+    srv_req.config = config;
+
     ros::service::call("/move_base/local_costmap/inflation_layer/set_parameters", srv_req, srv_resp);
 }
 
-void change_dwa_param(ros::NodeHandle& nh, const std::string& param_name, double value) {
+void change_dwa_param(const std::string& param_name, double value) {
     dynamic_reconfigure::ReconfigureRequest srv_req;
     dynamic_reconfigure::ReconfigureResponse srv_resp;
     dynamic_reconfigure::DoubleParameter double_param;
@@ -160,6 +208,7 @@ auto main(int argc, char **argv) -> int {
 
     recived_waypoint.store(false);
     is_fst_flag.store(true);
+    is_reconfigure.store(false);
 
     private_nh.param(
         "goal_topic",
@@ -169,7 +218,7 @@ auto main(int argc, char **argv) -> int {
     private_nh.param(
         "waypoint",
         waypoint_topic,
-        std::string("waypoint_manager/waypoint")
+        std::string("waypoint")
     );
     private_nh.param(
         "is_reached_goal_topic",
@@ -211,25 +260,8 @@ auto main(int argc, char **argv) -> int {
 
     ROS_INFO("Start waypoint_reconfigure_node");
 
-    while(ros::ok()) {
-        ros::spinOnce();
+    ros::spin();
 
-        // change_inflation_param(nh, "inflation_radius", 2.0);
-        // change_dwa_param(nh, "max_vel_x", 1.0);
-        // change_dwa_param(nh, "max_vel_trans", 1.0);
-
-
-      
-        // ros::Duration(5).sleep();
-
-        // change_inflation_param(nh, "inflation_radius", 0.5);
-        // change_dwa_param(nh, "max_vel_x", 0.3);
-        // change_dwa_param(nh, "max_vel_trans", 0.3);
-
-        // ros::Duration(5).sleep();
-       
-        loop_rate.sleep();
-    }
     ROS_INFO("Finish waypoint_server_node");
 
     return 0;
