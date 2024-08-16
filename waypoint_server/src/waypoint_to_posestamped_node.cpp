@@ -1,86 +1,56 @@
-
 #include <string>
 
-#include <ros/ros.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <waypoint_manager_msgs/Waypoint.h>
+#include <rclcpp/rclcpp.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <waypoint_manager_msgs/msg/waypoint.hpp>
 
-class Node {
-    public :
-        Node();
+class Node : public rclcpp::Node {
+public:
+    Node();
 
-        void spin();
+private:
+    bool latch;
+    std::string pose_topic, waypoint_topic, frame_id;
 
-    private :
-        bool latch;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_publisher;
+    rclcpp::Subscription<waypoint_manager_msgs::msg::Waypoint>::SharedPtr waypoint_subscriber;
 
-        std::string pose_topic,
-                    waypoint_topic,
-                    frame_id;
-
-        ros::NodeHandle nh,
-                        private_nh;
-
-        ros::Publisher pose_publisher;
-        ros::Subscriber waypoint_subscriber;
-
-        void waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &);
+    void waypointCallback(const waypoint_manager_msgs::msg::Waypoint::SharedPtr msg);
 };
 
-Node::Node() : nh(), private_nh("~") {
-    private_nh.param(
-        "latch",
-        latch,
-        false
-    );
-    private_nh.param(
-        "frame_id",
-        frame_id,
-        std::string("map")
-    );
-    private_nh.param(
-        "pose_topic",
-        pose_topic,
-        std::string("move_base_simple/goal")
-    );
-    private_nh.param(
-        "waypoint_topic",
-        waypoint_topic,
-        std::string("waypoint")
-    );
+Node::Node() : Node("waypoint_to_posestamped_node") {
+    this->declare_parameter("latch", false);
+    this->declare_parameter("frame_id", "map");
+    this->declare_parameter("pose_topic", "move_base_simple/goal");
+    this->declare_parameter("waypoint_topic", "waypoint");
 
-    pose_publisher = nh.advertise<geometry_msgs::PoseStamped>(
-        pose_topic,
-        1,
-        latch
-    );
-    waypoint_subscriber = nh.subscribe<waypoint_manager_msgs::Waypoint>(
+    this->get_parameter("latch", latch);
+    this->get_parameter("frame_id", frame_id);
+    this->get_parameter("pose_topic", pose_topic);
+    this->get_parameter("waypoint_topic", waypoint_topic);
+
+    pose_publisher = this->create_publisher<geometry_msgs::msg::PoseStamped>(pose_topic, rclcpp::QoS(1).transient_local(latch));
+    waypoint_subscriber = this->create_subscription<waypoint_manager_msgs::msg::Waypoint>(
         waypoint_topic,
-        1,
-        &Node::waypointCallback,
-        this
+        rclcpp::QoS(1),
+        std::bind(&Node::waypointCallback, this, std::placeholders::_1)
     );
 }
 
-void Node::spin() {
-    ros::spin();
-}
-
-void Node::waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &msg) {
-    geometry_msgs::PoseStamped pose_stamped;
+void Node::waypointCallback(const waypoint_manager_msgs::msg::Waypoint::SharedPtr msg) {
+    auto pose_stamped = geometry_msgs::msg::PoseStamped();
 
     pose_stamped.pose = msg->pose;
     pose_stamped.header.frame_id = frame_id;
-    pose_stamped.header.stamp = ros::Time::now();
+    pose_stamped.header.stamp = this->now();
 
-    pose_publisher.publish(pose_stamped);
+    pose_publisher->publish(pose_stamped);
 }
 
-auto main(int argc, char **argv) -> int {
-    ros::init(argc, argv, "waypoint_to_posestamped_node");
-
-    Node node{};
-    node.spin();
-
+int main(int argc, char **argv) {
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<Node>();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
     return 0;
 }

@@ -1,70 +1,54 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.5)
 project(waypoint_reconfigure VERSION 0.0.0 LANGUAGES CXX)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+# C++14を使用する設定（ROS2の標準）
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    roslib
-    tf
-    geometry_msgs
-    waypoint_manager_msgs
-    dynamic_reconfigure
-)
-
-# generate_dynamic_reconfigure_options(
-# cfg/DWAPlanner.cfg
-# )
-
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+# 依存関係の検索
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(waypoint_manager_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES goal_event_handler
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
-)
-
+# ヘッダファイルのディレクトリを指定
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIRS}
 )
 
+# 実行可能ファイルの設定
 add_executable(waypoint_reconfigure_node
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/waypoint_reconfigure_node.cpp
+  src/waypoint_reconfigure_node.cpp
 )
 
-## Rename C++ executable without prefix
-## The above recommended prefix causes long target names, the following renames the
-## target back to the shorter version for ease of user use
-## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
+# ライブラリのリンク
+ament_target_dependencies(waypoint_reconfigure_node
+  rclcpp
+  tf2
+  tf2_ros
+  geometry_msgs
+  waypoint_manager_msgs
+  Eigen3
+  yaml-cpp
+)
+
+# 実行ファイルのプロパティ設定
 set_target_properties(waypoint_reconfigure_node
-    PROPERTIES
-        OUTPUT_NAME waypoint_reconfigure_node
-        VERSION ${PROJECT_VERSION}
+  PROPERTIES
+    OUTPUT_NAME waypoint_reconfigure_node
+    VERSION ${PROJECT_VERSION}
 )
 
-## Add cmake target dependencies of the executable
-## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# インストールターゲットの設定
+install(TARGETS waypoint_reconfigure_node
+  DESTINATION lib/${PROJECT_NAME}
+)
 
-## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
-target_link_libraries(waypoint_reconfigure_node
-    Eigen3::Eigen
-    ${catkin_LIBRARIES}
-    yaml-cpp
-)
-target_compile_features(waypoint_reconfigure_node
-    PRIVATE
-        cxx_std_14
-)
+# パッケージのエクスポート設定
+ament_package()
