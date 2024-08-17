@@ -188,6 +188,11 @@ auto main(int argc, char **argv) -> int {
         limit_time,
         static_cast<float>(20.0)
     );
+    private_nh.param(
+        "limit_delta_pose_dist",
+        limit_delta_pose_dist,
+        static_cast<float>(0.1)
+    );
 
     auto loop_rate = ros::Rate(5);
     auto waypoint_subscriber = nh.subscribe(
@@ -235,7 +240,7 @@ auto main(int argc, char **argv) -> int {
         // check robot delta pose dist
         if (delta_pose_dist <= limit_delta_pose_dist && !is_reached_goal) {
             ROS_INFO("time:%ld, stopped time:%ld\n", time(NULL) - start_time, time(NULL) - last_moving_time);
-            
+
             if (time(NULL) - last_moving_time >= limit_time) {
                 std_srvs::Trigger trigger;
                 if (is_fst_waypoint_reached) {
