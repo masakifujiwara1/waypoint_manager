@@ -27,8 +27,10 @@
 #include <dynamic_reconfigure/Reconfigure.h>
 #include <dynamic_reconfigure/Config.h>
 #include <dynamic_reconfigure/DoubleParameter.h>
+#include <dynamic_reconfigure/BoolParameter.h>
 #include <dynamic_reconfigure/client.h>
 #include "costmap_2d/InflationPluginConfig.h"
+#include "costmap_2d/VoxelPluginConfig.h"
 #include "dwa_local_planner/DWAPlannerConfig.h"
 
 namespace {
@@ -44,7 +46,7 @@ namespace {
 
 void change_global_inflation_param(const std::string& param_name, double value);
 void change_local_inflation_param(const std::string& param_name, double value);
-void change_local_cost_cloud_param(const std::string& param_name, double value);
+void change_local_cost_cloud_param(const std::string& param_name, bool value);
 void change_dwa_param(const std::string& param_name, double value);
 
 void waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &msg) {
@@ -185,15 +187,15 @@ void change_local_inflation_param(const std::string& param_name, double value) {
     ros::service::call("/move_base/local_costmap/inflation_layer/set_parameters", srv_req, srv_resp);
 }
 
-void change_local_cost_cloud_param(const std::string& param_name, double value) {
+void change_local_cost_cloud_param(const std::string& param_name, bool value) {
     dynamic_reconfigure::ReconfigureRequest srv_req;
     dynamic_reconfigure::ReconfigureResponse srv_resp;
-    dynamic_reconfigure::DoubleParameter double_param;
+    dynamic_reconfigure::BoolParameter bool_param;
     dynamic_reconfigure::Config config;
 
-    double_param.name = param_name;
-    double_param.value = value;
-    config.doubles.push_back(double_param);
+    bool_param.name = param_name;
+    bool_param.value = value;
+    config.bools.push_back(bool_param);
 
     srv_req.config = config;
 
