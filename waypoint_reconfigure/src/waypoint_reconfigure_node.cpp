@@ -115,7 +115,7 @@ void waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &msg) {
                         if (p["key"].as<std::string>() == "local_cost_cloud") {
                             // local_cost_cloud = p["value"].as<bool>();
                             // ROS_WARN("Set local_cost_cloud %f", local_inflation);
-                            change_local_inflation_param("enabled", false);
+                            change_local_cost_cloud_param("enabled", false);
                         }
 
                         if (p["key"].as<std::string>() == "dwa_limit_vel") {
