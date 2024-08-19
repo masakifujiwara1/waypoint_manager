@@ -44,6 +44,7 @@ namespace {
 
 void change_global_inflation_param(const std::string& param_name, double value);
 void change_local_inflation_param(const std::string& param_name, double value);
+void change_local_cost_cloud_param(const std::string& param_name, double value);
 void change_dwa_param(const std::string& param_name, double value);
 
 void waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &msg) {
@@ -77,6 +78,10 @@ void waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &msg) {
                             change_local_inflation_param("inflation_radius", default_local_inflation);
                         }
 
+                        if (p["key"].as<std::string>() == "local_cost_cloud") {
+                            change_local_cost_cloud_param("enabled", true);
+                        }
+
                         if (p["key"].as<std::string>() == "dwa_limit_vel") {
                             change_dwa_param("max_vel_x", default_dwa_limit_vel);
                             change_dwa_param("max_vel_trans", default_dwa_limit_vel);
@@ -103,6 +108,12 @@ void waypointCallback(const waypoint_manager_msgs::Waypoint::ConstPtr &msg) {
                             local_inflation = p["value"].as<float>();
                             ROS_WARN("Set local_inflation %f", local_inflation);
                             change_local_inflation_param("inflation_radius", local_inflation);
+                        }
+
+                        if (p["key"].as<std::string>() == "local_cost_cloud") {
+                            // local_cost_cloud = p["value"].as<bool>();
+                            // ROS_WARN("Set local_cost_cloud %f", local_inflation);
+                            change_local_inflation_param("enabled", false);
                         }
 
                         if (p["key"].as<std::string>() == "dwa_limit_vel") {
@@ -172,6 +183,21 @@ void change_local_inflation_param(const std::string& param_name, double value) {
     srv_req.config = config;
 
     ros::service::call("/move_base/local_costmap/inflation_layer/set_parameters", srv_req, srv_resp);
+}
+
+void change_local_cost_cloud_param(const std::string& param_name, double value) {
+    dynamic_reconfigure::ReconfigureRequest srv_req;
+    dynamic_reconfigure::ReconfigureResponse srv_resp;
+    dynamic_reconfigure::DoubleParameter double_param;
+    dynamic_reconfigure::Config config;
+
+    double_param.name = param_name;
+    double_param.value = value;
+    config.doubles.push_back(double_param);
+
+    srv_req.config = config;
+
+    ros::service::call("/move_base/local_costmap/local_cost_cloud_layer/set_parameters", srv_req, srv_resp);
 }
 
 void change_dwa_param(const std::string& param_name, double value) {
