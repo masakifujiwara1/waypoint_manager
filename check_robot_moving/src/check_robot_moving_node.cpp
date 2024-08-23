@@ -183,6 +183,16 @@ auto main(int argc, char **argv) -> int {
         clear_costmap_srv,
         std::string("move_base/clear_costmaps")
     );
+    private_nh.param(
+        "limit_time",
+        limit_time,
+        static_cast<float>(20.0)
+    );
+    private_nh.param(
+        "limit_delta_pose_dist",
+        limit_delta_pose_dist,
+        static_cast<float>(0.1)
+    );
 
     auto loop_rate = ros::Rate(5);
     auto waypoint_subscriber = nh.subscribe(
@@ -216,6 +226,7 @@ auto main(int argc, char **argv) -> int {
         if (!recived_waypoint.load()) {
             ROS_INFO("Waiting waypoint check_moving_node");
             ros::Duration(1.0).sleep();
+            last_moving_time = time(NULL);
             continue;
         }
 
@@ -229,6 +240,8 @@ auto main(int argc, char **argv) -> int {
 
         // check robot delta pose dist
         if (delta_pose_dist <= limit_delta_pose_dist && !is_reached_goal) {
+            ROS_INFO("time:%ld, stopped time:%ld\n", time(NULL) - start_time, time(NULL) - last_moving_time);
+
             if (time(NULL) - last_moving_time >= limit_time) {
                 std_srvs::Trigger trigger;
                 if (is_fst_waypoint_reached) {
@@ -241,11 +254,6 @@ auto main(int argc, char **argv) -> int {
         } else {
             last_moving_time = time(NULL);
         }
-
-        // ROS_INFO("delta_pose_dist:%lf\n", delta_pose_dist);
-        // ROS_INFO("cmd_vel:%lf\n", vel_x);
-        // ROS_INFO("is_reached_goal:%d\n", is_reached_goal.load());
-        ROS_INFO("time:%ld, stopped time:%ld\n", time(NULL) - start_time, time(NULL) - last_moving_time);
 
         loop_rate.sleep();
     }
