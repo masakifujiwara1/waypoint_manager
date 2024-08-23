@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   waypoint_manager_msgs
   waypoint_server
   check_robot_moving
+  waypoint_reconfigure
 )
 
 ## System dependencies are found with CMake's conventions
