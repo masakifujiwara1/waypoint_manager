@@ -2,6 +2,9 @@
 
 <img width="736" alt="Screen Shot 2022-01-19 at 18 19 39" src="https://user-images.githubusercontent.com/18626482/150101087-60d64f9e-ca0b-46d5-82cf-49a279f38a61.png">
 
+## Releases
+https://github.com/masakifujiwara1/waypoint_manager/releases
+
 ## Usage
 
 ```shell
