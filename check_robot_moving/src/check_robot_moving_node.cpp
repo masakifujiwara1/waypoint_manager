@@ -226,6 +226,7 @@ auto main(int argc, char **argv) -> int {
         if (!recived_waypoint.load()) {
             ROS_INFO("Waiting waypoint check_moving_node");
             ros::Duration(1.0).sleep();
+            last_moving_time = time(NULL);
             continue;
         }
 
