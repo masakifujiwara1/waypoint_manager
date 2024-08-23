@@ -11,6 +11,17 @@ or
 ```shell
 roslaunch waypoint_server waypoint_server.launch config_file:=<your confg>
 ```
+### when using options
+```
+roslaunch waypoint_server waypoint_server_options.launch config_file:=<your confg> use_check_robot_moving:=<true or false> use_waypoint_reconfigure:=<true or false>
+```
+
+## Options
+### check_robot_moving
+https://github.com/masakifujiwara1/waypoint_manager/releases/tag/v2.0.1
+
+### waypoint_reconfigure
+https://github.com/masakifujiwara1/waypoint_manager/releases/tag/v2.1.1-beta
 
 ## TODO
 
