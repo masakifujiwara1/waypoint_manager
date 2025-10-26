@@ -106,12 +106,29 @@ namespace waypoint_visualization
 
     void WaypointOperatorPanel::callSetGoalRadius()
     {
-        RCLCPP_INFO(node_->get_logger(), "Pushed callSetGoalWaypoint()");
-        try {
-            node_->declare_parameter("set_goal_radius", getWaypointNumber());
-        } catch(...) {
-            node_->set_parameter(rclcpp::Parameter("set_goal_radius", getWaypointNumber()));
+        RCLCPP_INFO(node_->get_logger(), "Pushed callSetGoalRadius()");
+        float radius = getWaypointNumber();
+        
+        if (radius < 0.0f) {
+            return;  // Invalid input
         }
+        
+        // Create parameter client for waypoint_visualization node
+        auto param_client = std::make_shared<rclcpp::AsyncParametersClient>(
+            node_, "waypoint_manager/waypoint_visualization");
+        
+        // Wait for the parameter service to be available
+        if (!param_client->wait_for_service(std::chrono::seconds(1))) {
+            RCLCPP_WARN(node_->get_logger(), "Parameter service not available");
+            return;
+        }
+        
+        // Set the parameter
+        auto results = param_client->set_parameters({
+            rclcpp::Parameter("set_goal_radius", radius)
+        });
+        
+        RCLCPP_INFO(node_->get_logger(), "Set goal radius to: %f", radius);
     }
 
     float WaypointOperatorPanel::getWaypointNumber()
