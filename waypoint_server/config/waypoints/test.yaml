@@ -7,58 +7,58 @@ waypoint_server:
   euler_angles:
     x: 0
     y: 0
-    z: 1.57
+    z: 1.57000005
   waypoints:
     - id: registed_goal_3
       position:
-        x: -20.11524
-        y: -32.84301
+        x: -20.1152382
+        y: -32.8430099
         z: -3
       euler_angles:
         x: -0
         y: -0
-        z: 2.959788
+        z: 2.95978808
     - id: registed_goal_2
       position:
-        x: -2.648848
-        y: -30.99604
+        x: -2.64884758
+        y: -30.9960403
         z: -3
       euler_angles:
         x: 0
         y: 0
-        z: -2.533017
+        z: -2.53301692
     - id: registed_goal_1
       position:
-        x: -0.27491
-        y: -18.93001
+        x: -0.274909973
+        y: -18.9300098
         z: -3
       euler_angles:
         x: 0
         y: 0
-        z: -1.780379
+        z: -1.78037906
     - id: registed_goal_4
       position:
-        x: -27.66374
-        y: -32.82571
+        x: -27.6637402
+        y: -32.8257027
         z: -3
       euler_angles:
         x: -0
         y: -0
-        z: 3.079683
+        z: 3.07968307
     - id: registed_goal_0
       position:
-        x: -0.8908886
-        y: -2.370749
-        z: -3
+        x: -0.637583733
+        y: -11.6355038
+        z: -3.00000381
       euler_angles:
         x: 0
         y: 0
-        z: -1.833312
+        z: -1.83331239
     - id: 1
       position:
-        x: -2.384186e-07
-        y: 0
-        z: 0
+        x: -6.00784063
+        y: 4.85771799
+        z: -3
       euler_angles:
         x: -0
         y: 0
@@ -67,13 +67,13 @@ waypoint_server:
         - key: stop
           value: true
         - key: goal_radius
-          value: 5.0
+          value: 1.000000
       connections:
         - 2
     - id: 3
       position:
-        x: 4
-        y: 5
+        x: 3.99999905
+        y: 4.99999809
         z: 6
       euler_angles:
         x: -0
@@ -83,13 +83,13 @@ waypoint_server:
         - 1
     - id: 2
       position:
-        x: 0.9999998
-        y: 1
-        z: 1
+        x: 1.85762167
+        y: -2.25097966
+        z: -3
       euler_angles:
-        x: 0.9999996
-        y: 1
-        z: 1
+        x: -0
+        y: -0
+        z: 1.58006132
       properties:
         - key: goal_radius
-          value: 10.0
+          value: 1.000000

@@ -1,70 +1,63 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(waypoint_reconfigure VERSION 0.0.0 LANGUAGES CXX)
 
-## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
-## Find catkin macros and libraries
-## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
-## is used, also find other catkin packages
-find_package(catkin REQUIRED COMPONENTS
-    roscpp
-    roslib
-    tf
-    geometry_msgs
-    waypoint_manager_msgs
-    dynamic_reconfigure
-)
-
-# generate_dynamic_reconfigure_options(
-# cfg/DWAPlanner.cfg
-# )
-
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
+# Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rcl_interfaces REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
+find_package(waypoint_manager_msgs REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(yaml-cpp REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 
-catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES goal_event_handler
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
-)
-
-include_directories(
-  include
-  ${catkin_INCLUDE_DIRS}
-)
-
+# Add executable
 add_executable(waypoint_reconfigure_node
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/waypoint_reconfigure_node.cpp
+  src/waypoint_reconfigure_node.cpp
 )
 
-## Rename C++ executable without prefix
-## The above recommended prefix causes long target names, the following renames the
-## target back to the shorter version for ease of user use
-## e.g. "rosrun someones_pkg node" instead of "rosrun someones_pkg someones_pkg_node"
-# set_target_properties(${PROJECT_NAME}_node PROPERTIES OUTPUT_NAME node PREFIX "")
-set_target_properties(waypoint_reconfigure_node
-    PROPERTIES
-        OUTPUT_NAME waypoint_reconfigure_node
-        VERSION ${PROJECT_VERSION}
+target_include_directories(waypoint_reconfigure_node
+  PRIVATE
+    include
 )
 
-## Add cmake target dependencies of the executable
-## same as for the library above
-# add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_compile_features(waypoint_reconfigure_node PRIVATE cxx_std_14)
 
-## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+ament_target_dependencies(waypoint_reconfigure_node
+  rclcpp
+  rcl_interfaces
+  geometry_msgs
+  std_msgs
+  std_srvs
+  waypoint_manager_msgs
+  ament_index_cpp
+)
+
 target_link_libraries(waypoint_reconfigure_node
-    Eigen3::Eigen
-    ${catkin_LIBRARIES}
-    yaml-cpp
+  Eigen3::Eigen
+  yaml-cpp
 )
-target_compile_features(waypoint_reconfigure_node
-    PRIVATE
-        cxx_std_14
+
+# Install
+install(TARGETS
+  waypoint_reconfigure_node
+  DESTINATION lib/${PROJECT_NAME}
 )
+
+install(DIRECTORY
+  config/
+  DESTINATION share/${PROJECT_NAME}/config
+)
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_package()

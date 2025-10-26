@@ -1,15 +1,41 @@
-goal_topic: /move_base_simple/goal
-is_reached_goal_topic: waypoint/is_reached
-regist_goal_pose_topic: waypoint/regist_pose
-regist_goal_point_topic: waypoint/regist_point
-visualize_waypoints_topic: waypoints
-robot_base_frame: base_link
-global_frame: map
-goal_publish_frequency: 0.5
-goal_check_frequency: 1.0
-default_goal_radius: 1.0
-set_goal_radius: 1.0
-waypoints_file: $(find waypoint_server)/config/waypoints/test.yaml
-route_file: $(find waypoint_server)/config/routes/test.yaml
-enable_loop: true
-debug: false
+waypoint_manager:
+  waypoint_server:
+    ros__parameters:
+      goal_topic: /move_base_simple/goal
+      is_reached_goal_topic: waypoint/is_reached
+      regist_goal_pose_topic: waypoint/regist_pose
+      regist_goal_point_topic: waypoint/regist_point
+      visualize_waypoints_topic: waypoints
+      robot_base_frame: base_link
+      global_frame: map
+      goal_publish_frequency: 0.5
+      goal_check_frequency: 1.0
+      default_goal_radius: 1.0
+      set_goal_radius: 1.0
+      waypoints_file: ""
+      route_file: ""
+      enable_loop: true
+      debug: false
+  
+  waypoint_to_posestamped:
+    ros__parameters:
+      goal_topic: /move_base_simple/goal
+      is_reached_goal_topic: waypoint/is_reached
+      robot_base_frame: base_link
+      global_frame: map
+      goal_publish_frequency: 0.5
+  
+  waypoint_visualization:
+    ros__parameters:
+      regist_goal_point_topic: waypoint/regist_point
+      visualize_waypoints_topic: waypoints
+      robot_base_frame: base_link
+      global_frame: map
+  
+  radius_node:
+    ros__parameters:
+      default_goal_radius: 1.0
+      set_goal_radius: 1.0
+      goal_check_frequency: 1.0
+      robot_base_frame: base_link
+      global_frame: map

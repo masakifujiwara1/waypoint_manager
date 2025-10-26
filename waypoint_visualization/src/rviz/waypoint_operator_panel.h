@@ -7,18 +7,21 @@
 #include <QPushButton>
 #include <QLineEdit>
 
-#include <ros/ros.h>
-#include <rviz/panel.h>
+#include <rclcpp/rclcpp.hpp>
+#include <rviz_common/panel.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 namespace waypoint_visualization
 {
-    class WaypointOperatorPanel : public rviz::Panel
+    class WaypointOperatorPanel : public rviz_common::Panel
     {
         Q_OBJECT
 
     public:
-        WaypointOperatorPanel(QWidget *parent = 0);
+        WaypointOperatorPanel(QWidget *parent = nullptr);
         virtual ~WaypointOperatorPanel();
+
+        void onInitialize() override;
 
     protected Q_SLOTS:
         void callSwitchCancel();
@@ -41,12 +44,10 @@ namespace waypoint_visualization
 
         QLineEdit *waypoint_number_input;
 
-        ros::NodeHandle nh,
-            private_nh;
-
-        ros::ServiceClient switch_cancel_client,
-            next_waypoint_client,
-            waypoint_save_client,
-            prev_waypoint_client;
+        rclcpp::Node::SharedPtr node_;
+        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr switch_cancel_client_;
+        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr next_waypoint_client_;
+        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr waypoint_save_client_;
+        rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr prev_waypoint_client_;
     };
 }
