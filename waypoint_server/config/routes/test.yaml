@@ -3,5 +3,6 @@ waypoint_server:
     ids:
       - 1
       - 2
+      - registed_0_1763289694810931109
       - 3
     count_of_skip_ids: 1
